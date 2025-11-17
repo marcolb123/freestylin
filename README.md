@@ -8,6 +8,20 @@ A React-based web application that helps dancers practice freestyle by providing
 ![Vite](https://img.shields.io/badge/Vite-6.0.1-purple)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-green)
 
+## 🎨 Tech Stack
+
+### Frontend
+- **React 18.3.1** - UI framework
+- **Vite 6.0.1** - Build tool and dev server
+- **CSS3** - Styling with gradients and animations
+
+### Backend
+- **Express** - Web server framework
+- **OpenAI API** - GPT-4o-mini for AI advice
+- **CORS** - Cross-origin resource sharing
+- **dotenv** - Environment variable management
+
+
 ## ✨ Features
 
 - 🎲 **Random Prompt Generator** - Spin to get dance prompts like Bounce, Waves, Groove, Isolations, and more
@@ -44,7 +58,6 @@ A React-based web application that helps dancers practice freestyle by providing
    Create a `.env` file in the root directory:
    ```env
    OPENAI_API_KEY=your-openai-api-key-here
-   YOUTUBE_API_KEY=your-youtube-api-key-here
    ```
 
 4. **Start the development servers**
@@ -85,26 +98,13 @@ freestyle-prompt/
 ├── src/
 │   ├── App.jsx          # Main React component
 │   ├── App.css          # Styled components
-│   ├── main.jsx         # React entry point
+│   ├── min.jsx         # React entry point
 │   └── index.css        # Global styles
 ├── server.js            # Express backend for AI API
 ├── .env                 # Environment variables (not in git)
 ├── package.json         # Dependencies and scripts
 └── README.md           # You are here!
 ```
-
-## 🎨 Tech Stack
-
-### Frontend
-- **React 18.3.1** - UI framework
-- **Vite 6.0.1** - Build tool and dev server
-- **CSS3** - Styling with gradients and animations
-
-### Backend
-- **Express** - Web server framework
-- **OpenAI API** - GPT-4o-mini for AI advice
-- **CORS** - Cross-origin resource sharing
-- **dotenv** - Environment variable management
 
 ## 📊 Dance Prompts Included
 
