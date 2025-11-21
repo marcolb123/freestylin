@@ -212,6 +212,30 @@ const PROMPTS = [
     
 ];
 
+// 🎵 MUSIC GENRES: SoundCloud mixes by genre
+const MUSIC_GENRES = [
+    {
+        name: "House",
+        soundCloudUrl: "https://soundcloud.com/djsupad/housupa-afro-tribal-house-mix",
+        color: "#FF6B6B"
+    },
+    {
+        name: "Krump",
+        soundCloudUrl: "https://soundcloud.com/merciiful1/krump-mix",
+        color: "#4ECDC4"
+    },
+    {
+        name: "Hip-Hop",
+        soundCloudUrl: "https://soundcloud.com/kaisalart/old-school-vibes-vol-2-hip-hop-mix",
+        color: "#FFE66D"
+    },
+    {
+        name: "Popping",
+        soundCloudUrl: "https://soundcloud.com/dj-dbon1-314759770/get-the-tapes-vol-22-hip-hop",
+        color: "#95E1D3"
+    },
+];
+
 // Icon mapping object
 const iconMap = {
     Target,
