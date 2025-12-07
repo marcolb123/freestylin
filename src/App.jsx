@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
+import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 import "./App.css";
 // Import icons from Lucide React
 import { 
@@ -28,9 +29,48 @@ import {
     Footprints,
     Repeat,
     Activity,
-    Route,
+    Route as RouteIcon,  // ← Rename this to avoid conflict with React Router's Route
     Circle
 } from "lucide-react";
+
+// ═══════════════════════════════════════════════════════════
+// 🔐 AUTH CONTEXT
+// ═══════════════════════════════════════════════════════════
+const AuthContext = createContext();
+
+export const useAuth = () => useContext(AuthContext);
+
+function AuthProvider({ children }) {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        if (token && userData) {
+            setUser(JSON.parse(userData));
+        }
+        setLoading(false);
+    }, []);
+
+    const login = (token, userData) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+    };
+
+    const logout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, login, logout, loading }}>
+            {children}
+        </AuthContext.Provider>
+    );
+}
 
 // ═══════════════════════════════════════════════════════════
 // 📚 DATA SECTION: All dance prompts with tips and video links
@@ -256,15 +296,38 @@ const iconMap = {
     Droplet,
     Footprints,
     Repeat,
-    Route,
+    RouteIcon,  // ← Update here too
     TrendingUp,
     Circle
 };
 
 // ═══════════════════════════════════════════════════════════
-// 📱 MAIN APP: Wraps everything with title
+// 📱 MAIN APP WITH ROUTING
 // ═══════════════════════════════════════════════════════════
 export default function App() {
+    return (
+        <AuthProvider>
+            <Routes>
+                <Route path="/" element={<MainPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/submit" element={<SubmitPromptPage />} />
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            </Routes>
+        </AuthProvider>
+    );
+}
+
+function AdminRoute({ children }) {
+    const { user, loading } = useAuth();
+    if (loading) return <div>Loading...</div>;
+    return user?.isAdmin ? children : <Navigate to="/login" />;
+}
+
+function MainPage() {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
     return (
         <div className="app-container">
             <div className="app-header">
@@ -272,6 +335,22 @@ export default function App() {
                     <Music className="title-icon" size={48}/> Freestylin <Music className="title-icon" size={48} />
                 </h1>
                 <p className="app-subtitle">An app to help build dancer's freestyle</p>
+                
+                <div className="nav-buttons">
+                    {user ? (
+                        <>
+                            <span>Welcome, {user.username}!</span>
+                            <button onClick={() => navigate('/submit')} className="btn btn-nav">Submit Prompt</button>
+                            {user.isAdmin && <button onClick={() => navigate('/admin')} className="btn btn-nav">Admin</button>}
+                            <button onClick={logout} className="btn btn-nav">Logout</button>
+                        </>
+                    ) : (
+                        <>
+                            <button onClick={() => navigate('/login')} className="btn btn-nav">Login</button>
+                            <button onClick={() => navigate('/register')} className="btn btn-nav">Register</button>
+                        </>
+                    )}
+                </div>
             </div>
             
             <div className="app-content">
@@ -282,8 +361,207 @@ export default function App() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🎴 PROMPT CARD COMPONENT: Main interactive card
+// 🔑 LOGIN PAGE
 // ═══════════════════════════════════════════════════════════
+function LoginPage() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const { login } = useAuth();
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('http://localhost:3001/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                login(data.token, data.user);
+                navigate('/');
+            } else {
+                alert(data.error);
+            }
+        } catch (error) {
+            alert('Login failed');
+        }
+    };
+
+    return (
+        <div className="auth-page">
+            <form onSubmit={handleSubmit} className="auth-form">
+                <h2>Login</h2>
+                <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+                <button type="submit" className="btn btn-spin">Login</button>
+                <Link to="/register">Don't have an account? Register</Link>
+            </form>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📝 REGISTER PAGE
+// ═══════════════════════════════════════════════════════════
+function RegisterPage() {
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const { login } = useAuth();
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('http://localhost:3001/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                login(data.token, data.user);
+                navigate('/');
+            } else {
+                alert(data.error);
+            }
+        } catch (error) {
+            alert('Registration failed');
+        }
+    };
+
+    return (
+        <div className="auth-page">
+            <form onSubmit={handleSubmit} className="auth-form">
+                <h2>Register</h2>
+                <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
+                <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+                <button type="submit" className="btn btn-spin">Register</button>
+                <Link to="/login">Already have an account? Login</Link>
+            </form>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ➕ SUBMIT PROMPT PAGE
+// ═══════════════════════════════════════════════════════════
+function SubmitPromptPage() {
+    const [formData, setFormData] = useState({ label: '', description: '', tips: [''], drills: [{ icon: 'Target', text: '' }], links: [{ title: '', url: '' }] });
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch('http://localhost:3001/api/prompts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(formData)
+            });
+            if (res.ok) {
+                alert('Prompt submitted for review!');
+                navigate('/');
+            }
+        } catch (error) {
+            alert('Submission failed');
+        }
+    };
+
+    return (
+        <div className="auth-page">
+            <form onSubmit={handleSubmit} className="submit-form">
+                <h2>Submit New Prompt</h2>
+                <input type="text" placeholder="Label" value={formData.label} onChange={e => setFormData({...formData, label: e.target.value})} required />
+                <textarea placeholder="Description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required />
+                <button type="submit" className="btn btn-spin">Submit</button>
+                <button type="button" onClick={() => navigate('/')} className="btn btn-toggle">Cancel</button>
+            </form>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 👑 ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function AdminDashboard() {
+    const [stats, setStats] = useState(null);
+    const [prompts, setPrompts] = useState([]);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchStats();
+        fetchPrompts();
+    }, []);
+
+    const fetchStats = async () => {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:3001/api/admin/stats', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setStats(data);
+    };
+
+    const fetchPrompts = async () => {
+        const res = await fetch('http://localhost:3001/api/prompts?status=pending');
+        const data = await res.json();
+        setPrompts(data);
+    };
+
+    const approvePrompt = async (id) => {
+        const token = localStorage.getItem('token');
+        await fetch(`http://localhost:3001/api/prompts/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ status: 'approved' })
+        });
+        fetchPrompts();
+    };
+
+    return (
+        <div className="admin-dashboard">
+            <h1>Admin Dashboard</h1>
+            <button onClick={() => navigate('/')} className="btn btn-toggle">Back to Home</button>
+            
+            {stats && (
+                <div className="stats-grid">
+                    <div className="stat-card">
+                        <h3>Total Prompts</h3>
+                        <p>{stats.totalPrompts}</p>
+                    </div>
+                    <div className="stat-card">
+                        <h3>Total Users</h3>
+                        <p>{stats.totalUsers}</p>
+                    </div>
+                    <div className="stat-card">
+                        <h3>Total Views</h3>
+                        <p>{stats.totalViews}</p>
+                    </div>
+                    <div className="stat-card">
+                        <h3>Total Likes</h3>
+                        <p>{stats.totalLikes}</p>
+                    </div>
+                </div>
+            )}
+
+            <h2>Pending Prompts</h2>
+            <div className="prompts-list">
+                {prompts.map(prompt => (
+                    <div key={prompt._id} className="prompt-item">
+                        <h3>{prompt.label}</h3>
+                        <p>{prompt.description}</p>
+                        <button onClick={() => approvePrompt(prompt._id)} className="btn btn-spin">Approve</button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function PromptCard() {
     // ─────────────────────────────────────────────────────────
     // 🔄 STATE VARIABLES: Track what's happening in the app
@@ -293,7 +571,18 @@ function PromptCard() {
     const [showResources, setShowResources] = useState(false);
     const [showDrills, setShowDrills] = useState(false);
     const [selectedGenre, setSelectedGenre] = useState(null);
+    const [prompts, setPrompts] = useState([]);
     const current = PROMPTS[index];
+
+    useEffect(() => {
+        fetchPrompts();
+    }, []);
+
+    const fetchPrompts = async () => {
+        const res = await fetch('http://localhost:3001/api/prompts');
+        const data = await res.json();
+        setPrompts(data);
+    };
 
     // ─────────────────────────────────────────────────────────
     // 🎥 YOUTUBE HELPER: Extract video ID from URL (including Shorts)

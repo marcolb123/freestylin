@@ -442,6 +442,123 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
+   🔐 AUTH PAGES
+   ═══════════════════════════════════════════════════════════ */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.auth-form, .submit-form {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 400px;
+  color: white;
+}
+
+.auth-form h2, .submit-form h2 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.auth-form input, .submit-form input, .submit-form textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+}
+
+.submit-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.auth-form a {
+  display: block;
+  text-align: center;
+  color: white;
+  margin-top: 1rem;
+  text-decoration: underline;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-nav {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   👑 ADMIN DASHBOARD
+   ═══════════════════════════════════════════════════════════ */
+
+.admin-dashboard {
+  min-height: 100vh;
+  padding: 2rem;
+  color: white;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1.5rem;
+  border-radius: 15px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.stat-card p {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prompt-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  border-radius: 15px;
+}
+
+.prompt-item h3 {
+  margin: 0 0 0.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
    📱 RESPONSIVE DESIGN
    ═══════════════════════════════════════════════════════════ */
 
