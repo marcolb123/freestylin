@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 import "./App.css";
+import { API_URL } from "./config";
 // Import icons from Lucide React
 import { 
     Sparkles, 
@@ -30,7 +31,9 @@ import {
     Repeat,
     Activity,
     Route as RouteIcon,  // ← Rename this to avoid conflict with React Router's Route
-    Circle
+    Circle,
+    Heart,
+    Link as LinkIcon
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════
@@ -73,184 +76,10 @@ function AuthProvider({ children }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 📚 DATA SECTION: All dance prompts with tips and video links
+// 📚 DATA SECTION: Prompts now stored in MongoDB database
 // ═══════════════════════════════════════════════════════════
-const PROMPTS = [
-    {
-        label: "Bounce",
-        description: "Elastic, rhythmic movement with spring in your knees and ankles",
-        tips: [
-            "Keep knees soft; think elastic ankles.",
-            "Let head/shoulders ride the bounce.",
-            "Lock to the downbeat for 8 counts.",
-        ],
-        drills: [
-            { icon: "Target", text: "Basic Bounce: Stand with feet shoulder-width apart, bend knees slightly, and bounce for 16 counts. Focus on landing softly through the balls of your feet." },
-            { icon: "RotateCw", text: "Bounce & Shift: Bounce in place for 8 counts, then shift weight side-to-side while maintaining the bounce for 8 counts." },
-            { icon: "Timer", text: "Speed Variation: Bounce at half-time (slow) for 8 counts, then double-time (fast) for 8 counts. Keep the energy consistent." },
-            { icon: "Music", text: "Musical Bounce: Practice bouncing on different beats - on the 1, on the 'and', or on the offbeat. This develops musicality." },
-        ],
-        links: [
-            {
-                title: "Bounce drills",
-                url: "https://www.youtube.com/watch?v=lRbEjAar9yQ",
-            },
-        ],
-    },
-    {
-        label: "Waves",
-        description: "body waves that flow through different body parts such as your arms, chest, and hips",
-        tips: [
-            "Wrist → elbow → shoulder → chest.",
-            "Lead with fingertips; imagine water.",
-            "Practice both directions with breath.",
-        ],
-        drills: [
-            { icon: "Dumbbell", text: "Arm Wave Isolated: Practice arm waves slowly - start from wrist, roll through elbow, then shoulder. Do 10 reps each arm." },
-            { icon: "WavesIcon", text: "Body Wave Flow: Stand with feet together, create a wave from chest down through hips to knees. Repeat 8 times." },
-            { icon: "RotateCw", text: "Reverse Wave: Practice the wave in reverse - from knees up through hips, chest, and head. This builds control." },
-            { icon: "Activity", text: "Mirror Practice: Face a mirror and watch your wave travel. Ensure each body part moves sequentially, not simultaneously." },
-        ],
-        links: [
-            {
-                title: "Waving concepts",
-                url: "https://www.youtube.com/watch?v=GiPk-ekp58w",
-            },
-        ],
-    },
-    
-    {
-        label: "Isolations",
-        description: "Moving individual body parts independently while keeping others still",
-        tips: [
-            "Move one body part while keeping others still.",
-            "Start with head, chest, or hips.",
-            "Use mirror to check clean movement.",
-        ],
-        drills: [
-            { icon: "Brain", text: "Head Rolls: Keep shoulders still. Roll head in a circle - front, side, back, side. Do 4 slow circles each direction." },
-            { icon: "Zap", text: "Chest Pops: Isolate chest moving forward and back. Keep hips and shoulders locked. Do 16 reps focusing on clean movement." },
-            { icon: "Target", text: "Hip Isolation: Move hips in a square pattern - right, forward, left, back. Keep upper body still. 8 reps each direction." },
-            { icon: "Combine", text: "Combination Drill: Combine head (4 counts) + chest (4 counts) + hips (4 counts) while keeping other parts frozen. Repeat sequence 4 times." },
-        ],
-        links: [
-            {
-                title: "Body isolation basics",
-                url: "https://www.youtube.com/watch?v=7Caiei_F48s",
-            },
-        ],
-    },
-    {
-        label: "Levels",
-        description: "Exploring high, mid, and low positions with smooth transitions",
-        tips: [
-            "Explore high, mid, and low positions.",
-            "Transition smoothly between levels.",
-            "Challenge: spend 16 counts at each level.",
-        ],
-        drills: [
-            { icon: "ArrowUp", text: "High Level Exploration: Dance for 16 counts on your toes, reaching up. Try arm variations and turns." },
-            { icon: "ArrowRight", text: "Mid Level Flow: Stay in a half-squat position for 16 counts. Move around without standing fully up." },
-            { icon: "ArrowDown", text: "Low Level Practice: Get low to the ground. Move for 16 counts using floor work, knee slides, or crawling patterns." },
-            { icon: "RollerCoaster", text: "Level Transitions: Move from high → mid (4 counts), mid → low (4 counts), low → mid (4 counts), mid → high (4 counts). Repeat smoothly." },
-        ],
-        links: [
-            {
-                title: "Level changes tutorial",
-                url: "https://www.youtube.com/shorts/11fj6wGv_7o",
-            },
-        ],
-    },
-    {
-        label: "Textures",
-        description: "Contrasting sharp, robotic movements with smooth, liquid flows",
-        tips: [
-            "Mix sharp hits with smooth flows.",
-            "Contrast robotic and liquid movements.",
-            "Match texture to music dynamics.",
-        ],
-        drills: [
-            { icon: "Bot", text: "Robot Mode: Move in sharp, mechanical angles for 8 counts. Lock each position and move in straight lines only." },
-            { icon: "Droplet", text: "Liquid Flow: Switch to smooth, continuous movements for 8 counts. Imagine moving through water." },
-            { icon: "Zap", text: "Sharp Hits: Hit 4 sharp positions, holding each for 2 counts. Focus on clean stops and tension in the body." },
-            { icon: "Activity", text: "Texture Switch: Alternate between sharp (4 counts) and smooth (4 counts) for a full 32-count sequence. Make the contrast obvious." },
-        ],
-        links: [
-            {
-                title: "Textures explained",
-                url: "https://www.youtube.com/watch?v=T7o-PT0_Pvg",
-            },
-        ],
-    },
-    {
-        label: "Footwork",
-        description: "Step patterns and variations",
-        tips: [
-            "Start simple: step-touch, kick-step.",
-            "Keep weight on balls of feet.",
-            "Add rhythm variations to basic steps. such as 1 an a 2 an 3 4",
-        ],
-        drills: [
-            { icon: "Footprints", text: "Step-Touch Basic: Step right, touch left. Step left, touch right. Do this for 16 counts, keeping it clean and on beat." },
-            { icon: "Music", text: "Rhythm Variation: Add syncopation - step on 1, 'and', 'a', 2. Practice this pattern slowly, then speed up." },
-            { icon: "RotateCw", text: "Direction Changes: Do 4 step-touches forward, 4 to the side, 4 backward, 4 to the other side. Keep the pattern consistent." },
-            { icon: "Zap", text: "Speed Challenge: Start slow (4 counts per step-touch), then gradually double the speed every 8 counts until you're at maximum speed." },
-        ],
-        links: [
-            {
-                title: "Footwork fundamentals",
-                url: "https://www.youtube.com/watch?v=TPClzeTAMhI",
-            },
-        ],
-    },
-    {
-        label: "Musicality",
-        description: "Dancing to different layers of music with intention and dynamics",
-        tips: [
-            "Hit accents and breaks in the music.",
-            "Dance to different instruments/layers.",
-            "Pause when the music pauses.",
-        ],
-        drills: [
-            { icon: "Music", text: "Instrument Isolation: Listen to a song. Dance to ONLY the drums for 16 counts, then switch to ONLY the melody for 16 counts." },
-            { icon: "Target", text: "Accent Hits: Play a song and freeze/hit every time there's a strong accent or drop. This trains you to catch musical highlights." },
-            { icon: "Circle", text: "Pause Practice: Dance and freeze completely when the music has breaks or silence. Resume immediately when music returns." },
-            { icon: "TrendingUp", text: "Dynamics Match: Dance small/soft during quiet parts, big/strong during loud parts. Let your energy mirror the music's intensity." },
-        ],
-        links: [
-            {
-                title: "Music interpretation",
-                url: "https://www.youtube.com/watch?v=BT1i0OEUP6k&t=8s",
-            },
-        ],
-    },
-    {
-        label: "Floor Work",
-        description: "Ground-based movement including spins, rolls, and smooth transitions",
-        tips: [
-            "Practice getting down and up smoothly.",
-            "Use hands for support and transitions.",
-            "Try and explore pathways from the standing to knee to lying down positions.",
-        ],
-        drills: [
-            { icon: "ArrowDown", text: "Down-Up Flow: Start standing. Get to the floor in 4 counts (any way you want). Get back up in 4 counts. Repeat 8 times." },
-            { icon: "RotateCw", text: "Floor Exploration: Spend 32 counts moving ONLY on the floor. Try rolls, spins, crawls - don't stand up." },
-            { icon: "Repeat", text: "Knee Spin Practice: From kneeling position, practice spinning on your knees. Start with 180° turns, then progress to 360°." },
-            { icon: "Route", text: "Pathway Drill: Create a sequence: stand → kneel (4 counts) → sit (4 counts) → lie down (4 counts) → reverse back up. Make it smooth." },
-        ],
-        links: [
-            {
-                title: "Floor work variations",
-                url: "https://www.youtube.com/watch?v=TBr9fPsQfxU",
-            },
-            {
-                title: "Floor work transitions",
-                url: "https://www.youtube.com/watch?v=S3LLsWMc2VM",
-            }
-        ],
-    },
-    
-];
+// All prompts are now fetched from the database via API.
+// To add new prompts to the database, run: npm run seed
 
 // 🎵 MUSIC GENRES: SoundCloud mixes by genre
 const MUSIC_GENRES = [
@@ -312,6 +141,7 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/submit" element={<SubmitPromptPage />} />
+                <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             </Routes>
         </AuthProvider>
@@ -322,6 +152,12 @@ function AdminRoute({ children }) {
     const { user, loading } = useAuth();
     if (loading) return <div>Loading...</div>;
     return user?.isAdmin ? children : <Navigate to="/login" />;
+}
+
+function ProtectedRoute({ children }) {
+    const { user, loading } = useAuth();
+    if (loading) return <div>Loading...</div>;
+    return user ? children : <Navigate to="/login" />;
 }
 
 function MainPage() {
@@ -340,6 +176,9 @@ function MainPage() {
                     {user ? (
                         <>
                             <span>Welcome, {user.username}!</span>
+                            <button onClick={() => navigate('/favorites')} className="btn btn-nav">
+                                <Heart size={16} /> My Favorites
+                            </button>
                             <button onClick={() => navigate('/submit')} className="btn btn-nav">Submit Prompt</button>
                             {user.isAdmin && <button onClick={() => navigate('/admin')} className="btn btn-nav">Admin</button>}
                             <button onClick={logout} className="btn btn-nav">Logout</button>
@@ -372,7 +211,7 @@ function LoginPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:3001/api/auth/login', {
+            const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -415,7 +254,7 @@ function RegisterPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:3001/api/auth/register', {
+            const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, email, password })
@@ -450,35 +289,269 @@ function RegisterPage() {
 // ➕ SUBMIT PROMPT PAGE
 // ═══════════════════════════════════════════════════════════
 function SubmitPromptPage() {
-    const [formData, setFormData] = useState({ label: '', description: '', tips: [''], drills: [{ icon: 'Target', text: '' }], links: [{ title: '', url: '' }] });
+    const [formData, setFormData] = useState({ 
+        label: '', 
+        description: '', 
+        tips: [''], 
+        drills: [{ icon: 'Target', text: '' }] , 
+        links: [{ title: '', url: '', type: 'youtube' }] 
+    });
+    const [message, setMessage] = useState({ type: '', text: '' });
     const navigate = useNavigate();
+
+    // Available icons for drills
+    const availableIcons = [
+        'Target', 'RotateCw', 'Timer', 'Music', 'Dumbbell', 'WavesIcon', 'Activity',
+        'Brain', 'Zap', 'Combine', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'RollerCoaster',
+        'Bot', 'Droplet', 'Footprints', 'Repeat', 'RouteIcon', 'TrendingUp', 'Circle'
+    ];
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setMessage({ type: '', text: '' });
+
+        // Validation
+        if (!formData.label.trim() || !formData.description.trim()) {
+            setMessage({ type: 'error', text: 'Label and description are required.' });
+            return;
+        }
+
+        // Filter out empty tips
+        const cleanedTips = formData.tips.filter(tip => tip.trim() !== '');
+        
+        // Filter out incomplete drills
+        const cleanedDrills = formData.drills.filter(drill => drill.text.trim() !== '');
+        
+        // Filter out incomplete links
+        const cleanedLinks = formData.links.filter(link => link.title.trim() !== '' && link.url.trim() !== '');
+
+        const submissionData = {
+            ...formData,
+            tips: cleanedTips,
+            drills: cleanedDrills,
+            links: cleanedLinks
+        };
+
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:3001/api/prompts', {
+            const res = await fetch(`${API_URL}/api/prompts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submissionData)
             });
+            const data = await res.json();
             if (res.ok) {
-                alert('Prompt submitted for review!');
-                navigate('/');
+                setMessage({ type: 'success', text: 'Prompt submitted for review! Redirecting...' });
+                setTimeout(() => navigate('/'), 2000);
+            } else {
+                setMessage({ type: 'error', text: data.error || 'Submission failed' });
             }
         } catch (error) {
-            alert('Submission failed');
+            setMessage({ type: 'error', text: 'Network error. Please try again.' });
         }
+    };
+
+    // Tip handlers
+    const addTip = () => setFormData({...formData, tips: [...formData.tips, '']});
+    const removeTip = (index) => {
+        const newTips = formData.tips.filter((_, i) => i !== index);
+        setFormData({...formData, tips: newTips.length ? newTips : ['']});
+    };
+    const updateTip = (index, value) => {
+        const newTips = [...formData.tips];
+        newTips[index] = value;
+        setFormData({...formData, tips: newTips});
+    };
+
+    // Drill handlers
+    const addDrill = () => setFormData({...formData, drills: [...formData.drills, { icon: 'Target', text: '' }]});
+    const removeDrill = (index) => {
+        const newDrills = formData.drills.filter((_, i) => i !== index);
+        setFormData({...formData, drills: newDrills.length ? newDrills : [{ icon: 'Target', text: '' }]});
+    };
+    const updateDrill = (index, field, value) => {
+        const newDrills = [...formData.drills];
+        newDrills[index][field] = value;
+        setFormData({...formData, drills: newDrills});
+    };
+
+    // Link handlers
+    const addLink = () => setFormData({...formData, links: [...formData.links, { title: '', url: '', type: 'youtube' }]});
+    const removeLink = (index) => {
+        const newLinks = formData.links.filter((_, i) => i !== index);
+        setFormData({...formData, links: newLinks.length ? newLinks : [{ title: '', url: '', type: 'youtube' }]});
+    };
+    const updateLink = (index, field, value) => {
+        const newLinks = [...formData.links];
+        newLinks[index][field] = value;
+        setFormData({...formData, links: newLinks});
     };
 
     return (
         <div className="auth-page">
-            <form onSubmit={handleSubmit} className="submit-form">
+            <form onSubmit={handleSubmit} className="submit-form" style={{ maxWidth: '800px', padding: '2rem' }}>
                 <h2>Submit New Prompt</h2>
-                <input type="text" placeholder="Label" value={formData.label} onChange={e => setFormData({...formData, label: e.target.value})} required />
-                <textarea placeholder="Description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required />
-                <button type="submit" className="btn btn-spin">Submit</button>
-                <button type="button" onClick={() => navigate('/')} className="btn btn-toggle">Cancel</button>
+                
+                {message.text && (
+                    <div style={{ 
+                        padding: '1rem', 
+                        marginBottom: '1rem', 
+                        borderRadius: '8px',
+                        backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
+                        color: message.type === 'success' ? '#155724' : '#721c24'
+                    }}>
+                        {message.text}
+                    </div>
+                )}
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Label *</label>
+                    <input 
+                        type="text" 
+                        placeholder="e.g., Bounce, Waves, Isolations" 
+                        value={formData.label} 
+                        onChange={e => setFormData({...formData, label: e.target.value})} 
+                        required 
+                        style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Description *</label>
+                    <textarea 
+                        placeholder="Brief description of the dance concept" 
+                        value={formData.description} 
+                        onChange={e => setFormData({...formData, description: e.target.value})} 
+                        required 
+                        rows={3}
+                        style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
+                    />
+                </div>
+
+                {/* Tips Section */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tips</label>
+                    {formData.tips.map((tip, index) => (
+                        <div key={index} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <input 
+                                type="text" 
+                                placeholder={`Tip ${index + 1}`}
+                                value={tip}
+                                onChange={e => updateTip(index, e.target.value)}
+                                style={{ flex: 1, padding: '0.5rem', fontSize: '1rem' }}
+                            />
+                            {formData.tips.length > 1 && (
+                                <button type="button" onClick={() => removeTip(index)} className="btn btn-toggle" style={{ padding: '0.5rem 1rem' }}>
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    <button type="button" onClick={addTip} className="btn btn-toggle" style={{ marginTop: '0.5rem' }}>
+                        + Add Tip
+                    </button>
+                </div>
+
+                {/* Drills Section */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Drills</label>
+                    {formData.drills.map((drill, index) => (
+                        <div key={index} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                                <select 
+                                    value={drill.icon}
+                                    onChange={e => updateDrill(index, 'icon', e.target.value)}
+                                    style={{ padding: '0.5rem', fontSize: '1rem' }}
+                                >
+                                    {availableIcons.map(icon => (
+                                        <option key={icon} value={icon}>{icon}</option>
+                                    ))}
+                                </select>
+                                {formData.drills.length > 1 && (
+                                    <button type="button" onClick={() => removeDrill(index)} className="btn btn-toggle" style={{ padding: '0.5rem 1rem' }}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                            </div>
+                            <textarea 
+                                placeholder={`Drill ${index + 1} description`}
+                                value={drill.text}
+                                onChange={e => updateDrill(index, 'text', e.target.value)}
+                                rows={3}
+                                style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
+                            />
+                        </div>
+                    ))}
+                    <button type="button" onClick={addDrill} className="btn btn-toggle">
+                        + Add Drill
+                    </button>
+                </div>
+
+                {/* Links Section */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Resource Links</label>
+                    {formData.links.map((link, index) => (
+                        <div key={index} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Link title (e.g., Tutorial video)"
+                                    value={link.title}
+                                    onChange={e => updateLink(index, 'title', e.target.value)}
+                                    style={{ flex: 1, padding: '0.5rem', fontSize: '1rem' }}
+                                />
+                                {formData.links.length > 1 && (
+                                    <button type="button" onClick={() => removeLink(index)} className="btn btn-toggle" style={{ padding: '0.5rem 1rem' }}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {/* Resource Type Selector */}
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem', fontWeight: '600' }}>Resource Type</label>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input 
+                                            type="radio" 
+                                            name={`linkType${index}`}
+                                            value="youtube"
+                                            checked={link.type === 'youtube'}
+                                            onChange={e => updateLink(index, 'type', e.target.value)}
+                                        />
+                                        <Youtube size={16} /> YouTube Video
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input 
+                                            type="radio" 
+                                            name={`linkType${index}`}
+                                            value="website"
+                                            checked={link.type === 'website'}
+                                            onChange={e => updateLink(index, 'type', e.target.value)}
+                                        />
+                                        <LinkIcon size={16} /> Website Link
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <input 
+                                type="url" 
+                                placeholder={link.type === 'youtube' ? 'https://youtube.com/watch?v=...' : 'https://example.com/...'}
+                                value={link.url}
+                                onChange={e => updateLink(index, 'url', e.target.value)}
+                                style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
+                            />
+                        </div>
+                    ))}
+                    <button type="button" onClick={addLink} className="btn btn-toggle">
+                        + Add Link
+                    </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                    <button type="submit" className="btn btn-spin">Submit for Review</button>
+                    <button type="button" onClick={() => navigate('/')} className="btn btn-toggle">Cancel</button>
+                </div>
             </form>
         </div>
     );
@@ -490,16 +563,22 @@ function SubmitPromptPage() {
 function AdminDashboard() {
     const [stats, setStats] = useState(null);
     const [prompts, setPrompts] = useState([]);
+    const [allPrompts, setAllPrompts] = useState([]);
+    const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'rejected', 'all'
+    const [selectedPrompt, setSelectedPrompt] = useState(null);
+    const [showDetails, setShowDetails] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchStats();
         fetchPrompts();
+        fetchAllPrompts();
     }, []);
 
     const fetchStats = async () => {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3001/api/admin/stats', {
+        const res = await fetch(`${API_URL}/api/admin/stats`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -507,19 +586,87 @@ function AdminDashboard() {
     };
 
     const fetchPrompts = async () => {
-        const res = await fetch('http://localhost:3001/api/prompts?status=pending');
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/prompts?status=pending`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         const data = await res.json();
         setPrompts(data);
     };
 
+    const fetchAllPrompts = async () => {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/admin/prompts/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setAllPrompts(data);
+        }
+    };
+
     const approvePrompt = async (id) => {
         const token = localStorage.getItem('token');
-        await fetch(`http://localhost:3001/api/prompts/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ status: 'approved' })
-        });
-        fetchPrompts();
+        try {
+            await fetch(`http://localhost:3001/api/prompts/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ status: 'approved' })
+            });
+            alert('Prompt approved successfully!');
+            fetchPrompts();
+            fetchAllPrompts();
+            fetchStats();
+            setShowDetails(false);
+        } catch (error) {
+            alert('Failed to approve prompt');
+        }
+    };
+
+    const rejectPrompt = async (id) => {
+        const token = localStorage.getItem('token');
+        try {
+            await fetch(`${API_URL}/api/prompts/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ status: 'rejected' })
+            });
+            alert('Prompt rejected');
+            fetchPrompts();
+            fetchAllPrompts();
+            fetchStats();
+            setShowDetails(false);
+        } catch (error) {
+            alert('Failed to reject prompt');
+        }
+    };
+
+    const deletePrompt = async (id) => {
+        const token = localStorage.getItem('token');
+        try {
+            await fetch(`${API_URL}/api/prompts/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            alert('Prompt deleted');
+            fetchPrompts();
+            fetchAllPrompts();
+            fetchStats();
+            setShowDeleteConfirm(null);
+        } catch (error) {
+            alert('Failed to delete prompt');
+        }
+    };
+
+    const viewDetails = (prompt) => {
+        setSelectedPrompt(prompt);
+        setShowDetails(true);
+    };
+
+    const getFilteredPrompts = () => {
+        if (filter === 'pending') return prompts;
+        if (filter === 'all') return allPrompts;
+        return allPrompts.filter(p => p.status === filter);
     };
 
     return (
@@ -548,15 +695,398 @@ function AdminDashboard() {
                 </div>
             )}
 
-            <h2>Pending Prompts</h2>
+            <h2>Prompt Management</h2>
+            <div style={{ marginBottom: '1rem' }}>
+                <button onClick={() => setFilter('pending')} className={`btn ${filter === 'pending' ? 'btn-spin' : 'btn-toggle'}`}>
+                    Pending ({prompts.length})
+                </button>
+                <button onClick={() => setFilter('approved')} className={`btn ${filter === 'approved' ? 'btn-spin' : 'btn-toggle'}`} style={{ marginLeft: '0.5rem' }}>
+                    Approved
+                </button>
+                <button onClick={() => setFilter('rejected')} className={`btn ${filter === 'rejected' ? 'btn-spin' : 'btn-toggle'}`} style={{ marginLeft: '0.5rem' }}>
+                    Rejected
+                </button>
+                <button onClick={() => setFilter('all')} className={`btn ${filter === 'all' ? 'btn-spin' : 'btn-toggle'}`} style={{ marginLeft: '0.5rem' }}>
+                    All ({allPrompts.length})
+                </button>
+            </div>
+
             <div className="prompts-list">
-                {prompts.map(prompt => (
-                    <div key={prompt._id} className="prompt-item">
-                        <h3>{prompt.label}</h3>
-                        <p>{prompt.description}</p>
-                        <button onClick={() => approvePrompt(prompt._id)} className="btn btn-spin">Approve</button>
+                {getFilteredPrompts().length === 0 ? (
+                    <p>No prompts in this category</p>
+                ) : (
+                    getFilteredPrompts().map(prompt => (
+                        <div key={prompt._id} className="prompt-item" style={{ position: 'relative' }}>
+                            <span style={{ 
+                                position: 'absolute', 
+                                top: '10px', 
+                                right: '10px', 
+                                padding: '4px 8px', 
+                                borderRadius: '4px',
+                                fontSize: '0.8rem',
+                                backgroundColor: prompt.status === 'approved' ? '#d4edda' : prompt.status === 'rejected' ? '#f8d7da' : '#fff3cd',
+                                color: prompt.status === 'approved' ? '#155724' : prompt.status === 'rejected' ? '#721c24' : '#856404'
+                            }}>
+                                {prompt.status}
+                            </span>
+                            <h3>{prompt.label}</h3>
+                            <p>{prompt.description}</p>
+                            <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                                Tips: {prompt.tips?.length || 0} | Drills: {prompt.drills?.length || 0} | Links: {prompt.links?.length || 0}
+                            </p>
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
+                                <button onClick={() => viewDetails(prompt)} className="btn btn-toggle">View Details</button>
+                                {prompt.status === 'pending' && (
+                                    <>
+                                        <button onClick={() => approvePrompt(prompt._id)} className="btn btn-spin">Approve</button>
+                                        <button onClick={() => rejectPrompt(prompt._id)} className="btn btn-ai">Reject</button>
+                                    </>
+                                )}
+                                {showDeleteConfirm === prompt._id ? (
+                                    <>
+                                        <button onClick={() => deletePrompt(prompt._id)} className="btn btn-ai">Confirm Delete</button>
+                                        <button onClick={() => setShowDeleteConfirm(null)} className="btn btn-toggle">Cancel</button>
+                                    </>
+                                ) : (
+                                    <button onClick={() => setShowDeleteConfirm(prompt._id)} className="btn btn-toggle">
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Prompt Details Modal */}
+            {showDetails && selectedPrompt && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '2rem',
+                        borderRadius: '12px',
+                        maxWidth: '600px',
+                        maxHeight: '80vh',
+                        overflow: 'auto',
+                        width: '90%'
+                    }}>
+                        <h2>{selectedPrompt.label}</h2>
+                        <p><strong>Status:</strong> {selectedPrompt.status}</p>
+                        <p><strong>Description:</strong> {selectedPrompt.description}</p>
+                        
+                        {selectedPrompt.tips?.length > 0 && (
+                            <>
+                                <h3>Tips:</h3>
+                                <ul>
+                                    {selectedPrompt.tips.map((tip, i) => <li key={i}>{tip}</li>)}
+                                </ul>
+                            </>
+                        )}
+                        
+                        {selectedPrompt.drills?.length > 0 && (
+                            <>
+                                <h3>Drills:</h3>
+                                <ul>
+                                    {selectedPrompt.drills.map((drill, i) => (
+                                        <li key={i}><strong>{drill.icon}:</strong> {drill.text}</li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
+                        
+                        {selectedPrompt.links?.length > 0 && (
+                            <>
+                                <h3>Resource Links:</h3>
+                                <ul>
+                                    {selectedPrompt.links.map((link, i) => (
+                                        <li key={i}>
+                                            <a href={link.url} target="_blank" rel="noopener noreferrer">{link.title}</a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '1.5rem' }}>
+                            {selectedPrompt.status === 'pending' && (
+                                <>
+                                    <button onClick={() => approvePrompt(selectedPrompt._id)} className="btn btn-spin">Approve</button>
+                                    <button onClick={() => rejectPrompt(selectedPrompt._id)} className="btn btn-ai">Reject</button>
+                                </>
+                            )}
+                            <button onClick={() => setShowDetails(false)} className="btn btn-toggle">Close</button>
+                        </div>
                     </div>
-                ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🎥 YOUTUBE EMBED COMPONENT
+// ═══════════════════════════════════════════════════════════
+function YouTubeEmbed({ videoId, url, title }) {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    // Extract videoId from URL if not provided
+    const extractedVideoId = videoId || extractYouTubeId(url);
+
+    function extractYouTubeId(url) {
+        if (!url) return null;
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+            /youtube\.com\/shorts\/([^&\n?#]+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return null;
+    }
+
+    if (!extractedVideoId) {
+        return <div style={{ color: '#721c24', padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '8px' }}>
+            Invalid YouTube URL
+        </div>;
+    }
+
+    return (
+        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '12px', marginBottom: '1rem' }}>
+            {loading && (
+                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                    Loading video...
+                </div>
+            )}
+            <iframe
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none'
+                }}
+                src={`https://www.youtube.com/embed/${extractedVideoId}`}
+                title={title || 'YouTube video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                onLoad={() => setLoading(false)}
+                onError={() => {
+                    setLoading(false);
+                    setError(true);
+                }}
+            />
+            {error && <div style={{ color: '#721c24', padding: '0.5rem', backgroundColor: '#f8d7da', borderRadius: '8px', marginTop: '0.5rem' }}>
+                Failed to load video
+            </div>}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ❤️ FAVORITE BUTTON COMPONENT
+// ═══════════════════════════════════════════════════════════
+function FavoriteButton({ prompt, isFavorited: initialFavorited, onToggle }) {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [isFavorited, setIsFavorited] = useState(initialFavorited || false);
+    const [loading, setLoading] = useState(false);
+
+    const handleFavoriteToggle = async (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+
+        if (!user) {
+            if (confirm('You need to be logged in to favorite prompts. Go to login page?')) {
+                navigate('/login');
+            }
+            return;
+        }
+
+        // Optimistic update
+        const newFavorited = !isFavorited;
+        setIsFavorited(newFavorited);
+        setLoading(true);
+
+        try {
+            const token = localStorage.getItem('token');
+            const method = newFavorited ? 'POST' : 'DELETE';
+            const url = `${API_URL}/api/users/${user.id}/favorites/${prompt._id}`;
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error('Failed to update favorite');
+
+            if (onToggle) onToggle(prompt._id, newFavorited);
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            // Revert on error
+            setIsFavorited(!newFavorited);
+            alert('Failed to update favorite. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!user) return null; // Don't show favorite button if not logged in
+
+    return (
+        <button
+            onClick={handleFavoriteToggle}
+            disabled={loading}
+            style={{
+                background: 'none',
+                border: 'none',
+                cursor: loading ? 'wait' : 'pointer',
+                padding: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                transition: 'transform 0.2s',
+            }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.transform = 'scale(1.1)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+            <Heart
+                size={24}
+                fill={isFavorited ? '#ff6b6b' : 'none'}
+                stroke={isFavorited ? '#ff6b6b' : 'currentColor'}
+                style={{ transition: 'all 0.3s' }}
+            />
+        </button>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ❤️ FAVORITES PAGE
+// ═══════════════════════════════════════════════════════════
+function FavoritesPage() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [favorites, setFavorites] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        fetchFavorites();
+    }, []);
+
+    const fetchFavorites = async () => {
+        if (!user) return;
+        
+        try {
+            setLoading(true);
+            setError(null);
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/api/users/${user.id}/favorites`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error('Failed to fetch favorites');
+
+            const data = await res.json();
+            setFavorites(data);
+        } catch (error) {
+            console.error('Error fetching favorites:', error);
+            setError('Failed to load favorites. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRemoveFavorite = (promptId) => {
+        setFavorites(prev => prev.filter(p => p._id !== promptId));
+    };
+
+    return (
+        <div className="app-container">
+            <div className="app-header">
+                <h1 className="app-title">
+                    <Heart className="title-icon" size={48} fill="#ff6b6b" stroke="#ff6b6b" /> My Favorites
+                </h1>
+                <button onClick={() => navigate('/')} className="btn btn-nav">← Back to Home</button>
+            </div>
+
+            <div className="app-content" style={{ padding: '2rem' }}>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                        <p>Loading your favorites...</p>
+                    </div>
+                ) : error ? (
+                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                        <p style={{ color: '#721c24', backgroundColor: '#f8d7da', padding: '1rem', borderRadius: '8px' }}>
+                            {error}
+                        </p>
+                        <button onClick={fetchFavorites} className="btn btn-spin" style={{ marginTop: '1rem' }}>
+                            Retry
+                        </button>
+                    </div>
+                ) : favorites.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                        <Heart size={64} stroke="#ccc" style={{ marginBottom: '1rem' }} />
+                        <h2>No favorites yet</h2>
+                        <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+                            Start adding prompts to your favorites by clicking the heart icon on any prompt!
+                        </p>
+                        <button onClick={() => navigate('/')} className="btn btn-spin">
+                            Browse Prompts
+                        </button>
+                    </div>
+                ) : (
+                    <div>
+                        <p style={{ marginBottom: '1.5rem', color: '#666' }}>
+                            You have {favorites.length} favorite prompt{favorites.length !== 1 ? 's' : ''}
+                        </p>
+                        <div style={{ display: 'grid', gap: '1.5rem' }}>
+                            {favorites.map(prompt => (
+                                <div key={prompt._id} className="prompt-card" style={{ position: 'relative' }}>
+                                    <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                                        <FavoriteButton 
+                                            prompt={prompt} 
+                                            isFavorited={true}
+                                            onToggle={handleRemoveFavorite}
+                                        />
+                                    </div>
+                                    <div className="card-header">
+                                        <h2 className="prompt-title">{prompt.label}</h2>
+                                        <p className="prompt-subtitle">
+                                            <Music className="inline-icon" size={16} /> {prompt.description}
+                                        </p>
+                                    </div>
+                                    {prompt.tips && prompt.tips.length > 0 && (
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <h3>💡 Tips:</h3>
+                                            <ul>
+                                                {prompt.tips.map((tip, i) => (
+                                                    <li key={i}>{tip}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -566,51 +1096,100 @@ function PromptCard() {
     // ─────────────────────────────────────────────────────────
     // 🔄 STATE VARIABLES: Track what's happening in the app
     // ─────────────────────────────────────────────────────────
+    const { user } = useContext(AuthContext);
     const [index, setIndex] = useState(0);
     const [showTips, setShowTips] = useState(false);
     const [showResources, setShowResources] = useState(false);
     const [showDrills, setShowDrills] = useState(false);
     const [selectedGenre, setSelectedGenre] = useState(null);
     const [prompts, setPrompts] = useState([]);
-    const current = PROMPTS[index];
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    
+    const current = prompts[index];
 
     useEffect(() => {
         fetchPrompts();
-    }, []);
+    }, [user]);
 
     const fetchPrompts = async () => {
-        const res = await fetch('http://localhost:3001/api/prompts');
-        const data = await res.json();
-        setPrompts(data);
+        try {
+            setLoading(true);
+            setError(null);
+            const url = user 
+                ? `${API_URL}/api/prompts?userId=${user.id}`
+                : `${API_URL}/api/prompts`;
+            const res = await fetch(url);
+            if (!res.ok) {
+                throw new Error('Failed to fetch prompts from server');
+            }
+            const data = await res.json();
+            if (data.length === 0) {
+                setError('No prompts available. Please run "npm run seed" to add initial prompts.');
+            } else {
+                setPrompts(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch prompts:', error);
+            setError('Unable to load prompts. Please ensure the server is running.');
+        } finally {
+            setLoading(false);
+        }
     };
-
-    // ─────────────────────────────────────────────────────────
-    // 🎥 YOUTUBE HELPER: Extract video ID from URL (including Shorts)
-    // ─────────────────────────────────────────────────────────
-    function getYouTubeId(url) {
-        // Handle regular YouTube URLs and Shorts
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return match && match[2].length === 11 ? match[2] : null;
-    }
 
     // ─────────────────────────────────────────────────────────
     // 🎲 SPIN PROMPT: Get a random prompt
     // ─────────────────────────────────────────────────────────
     function spinPrompt() {
+        if (prompts.length === 0) return;
         setShowTips(false);
         setShowResources(false);
         setShowDrills(false);
-        const next = Math.floor(Math.random() * PROMPTS.length);
+        const next = Math.floor(Math.random() * prompts.length);
         setIndex(next);
     }
 
+    if (loading) {
+        return (
+            <div className="prompt-card">
+                <div className="card-header">
+                    <h2 className="prompt-title">Loading prompts...</h2>
+                    <p className="prompt-subtitle">Please wait while we fetch the dance prompts.</p>
+                </div>
+            </div>
+        );
+    }
 
-    // ─────────────────────────────────────────────────────────
-    // 🎵 SELECT GENRE: Choose music genre
-    // ─────────────────────────────────────────────────────────
-    function selectGenre(genre) {
-        setSelectedGenre(genre);
+    if (error) {
+        return (
+            <div className="prompt-card">
+                <div className="card-header">
+                    <h2 className="prompt-title">⚠️ Error</h2>
+                    <p className="prompt-subtitle">{error}</p>
+                </div>
+                <div className="button-group">
+                    <button className="btn btn-spin" onClick={fetchPrompts}>
+                        <RotateCw size={18} /> Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!current || prompts.length === 0) {
+        return (
+            <div className="prompt-card">
+                <div className="card-header">
+                    <h2 className="prompt-title">No prompts available</h2>
+                    <p className="prompt-subtitle">Run "npm run seed" to add initial prompts to the database.</p>
+                </div>
+                <div className="button-group">
+                    <button className="btn btn-spin" onClick={fetchPrompts}>
+                        <RotateCw size={18} /> Refresh
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     // ─────────────────────────────────────────────────────────
@@ -619,11 +1198,20 @@ function PromptCard() {
     return (
         <div className="prompt-card">
             {/* ─────── HEADER ─────── */}
-            <div className="card-header">
+            <div className="card-header" style={{ position: 'relative' }}>
                 <h2 className="prompt-title">{current.label}</h2>
                 <p className="prompt-subtitle">
                     <Music className="inline-icon" size={16} /> {current.description}
                 </p>
+                {user && (
+                    <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+                        <FavoriteButton 
+                            prompt={current} 
+                            isFavorited={current.isFavorited || false}
+                            onToggle={fetchPrompts}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* ─────── BUTTONS ─────── */}
@@ -665,40 +1253,60 @@ function PromptCard() {
                 </div>
             )}
 
-            {/* ─────── VIDEO EMBEDS ─────── */}
+            {/* ─────── RESOURCES (YouTube & Links) ─────── */}
             {showResources && (
                 <div className="content-box resources-box">
-                    <h4>
-                        <Youtube size={20} /> Video Resources
-                    </h4>
-                    {current.links.map((l, i) => {
-                        const videoId = getYouTubeId(l.url);
-                        return (
-                            <div key={i} className="video-container">
-                                <h5>{l.title}</h5>
-                                {videoId ? (
-                                    <iframe
-                                        width="100%"
-                                        height="315"
-                                        src={`https://www.youtube.com/embed/${videoId}`}
-                                        title={l.title}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    />
-                                ) : (
-                                    <a
-                                        href={l.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="video-link"
-                                    >
-                                        Watch video →
-                                    </a>
-                                )}
+                    {/* YouTube Videos Section */}
+                    {current.links.filter(l => l.type === 'youtube' || !l.type).length > 0 && (
+                        <>
+                            <h4>
+                                <Youtube size={20} /> Video Resources
+                            </h4>
+                            {current.links
+                                .filter(l => l.type === 'youtube' || !l.type)
+                                .map((link, i) => (
+                                    <div key={`video-${i}`} style={{ marginBottom: '1.5rem' }}>
+                                        <h5 style={{ marginBottom: '0.5rem', fontSize: '1rem' }}>{link.title}</h5>
+                                        <YouTubeEmbed url={link.url} title={link.title} />
+                                    </div>
+                                ))}
+                        </>
+                    )}
+                    
+                    {/* Website Links Section */}
+                    {current.links.filter(l => l.type === 'website').length > 0 && (
+                        <>
+                            <h4 style={{ marginTop: current.links.filter(l => l.type === 'youtube' || !l.type).length > 0 ? '1.5rem' : '0' }}>
+                                <LinkIcon size={20} /> Website Resources
+                            </h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {current.links
+                                    .filter(l => l.type === 'website')
+                                    .map((link, i) => (
+                                        <a
+                                            key={`link-${i}`}
+                                            href={link.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="video-link"
+                                            style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '0.5rem',
+                                                padding: '0.75rem',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                borderRadius: '8px',
+                                                textDecoration: 'none',
+                                                transition: 'background-color 0.2s'
+                                            }}
+                                        >
+                                            <LinkIcon size={16} />
+                                            <span>{link.title}</span>
+                                        </a>
+                                    ))}
                             </div>
-                        );
-                    })}
+                        </>
+                    )}
                 </div>
             )}
 

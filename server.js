@@ -19,7 +19,16 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY  // Get API key from .env
 });
 
-app.use(cors());                      // Enable CORS
+// Configure CORS for production
+app.use(cors({
+  origin: [
+    'http://localhost:5173',                    // Local development
+    'http://localhost:5174',                    // Alternative local port
+    'https://freestylin.netlify.app/',        // UPDATE with your actual Netlify URL
+    
+  ],
+  credentials: true
+}));
 app.use(express.json());              // Parse JSON requests
 
 // ═══════════════════════════════════════════════════════════
@@ -37,8 +46,12 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
+  favoritePrompts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Prompt' }],
   createdAt: { type: Date, default: Date.now }
 });
+
+// Add index on favoritePrompts for faster queries
+UserSchema.index({ favoritePrompts: 1 });
 
 const PromptSchema = new mongoose.Schema({
   label: { type: String, required: true },
@@ -50,7 +63,9 @@ const PromptSchema = new mongoose.Schema({
   }],
   links: [{
     title: String,
-    url: String
+    url: String,
+    type: { type: String, enum: ['youtube', 'website'], default: 'website' },
+    videoId: String  // Extracted YouTube video ID for embeds
   }],
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
@@ -93,6 +108,25 @@ const adminMiddleware = (req, res, next) => {
 };
 
 // ═══════════════════════════════════════════════════════════
+// 🎥 YOUTUBE HELPER FUNCTION
+// ═══════════════════════════════════════════════════════════
+function extractYouTubeVideoId(url) {
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/shorts\/([^&\n?#]+)/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════
 // 🔑 AUTH ROUTES
 // ═══════════════════════════════════════════════════════════
 app.post('/api/auth/register', async (req, res) => {
@@ -131,8 +165,14 @@ app.post('/api/auth/login', async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 app.get('/api/prompts', async (req, res) => {
   try {
-    const { search, status } = req.query;
-    const filter = status ? { status } : { status: 'approved' };
+    const { search, status, userId } = req.query;
+    // If status is provided, filter by it; otherwise return only approved prompts
+    const filter = {};
+    if (status) {
+      filter.status = status;
+    } else {
+      filter.status = 'approved';  // Default to approved for public viewing
+    }
     
     if (search) {
       filter.$or = [
@@ -142,6 +182,20 @@ app.get('/api/prompts', async (req, res) => {
     }
     
     const prompts = await Prompt.find(filter).populate('submittedBy', 'username');
+    
+    // If userId provided, add isFavorited field to each prompt
+    if (userId) {
+      const user = await User.findById(userId);
+      const favoriteIds = user?.favoritePrompts?.map(id => id.toString()) || [];
+      
+      const promptsWithFavorites = prompts.map(prompt => ({
+        ...prompt.toObject(),
+        isFavorited: favoriteIds.includes(prompt._id.toString())
+      }));
+      
+      return res.json(promptsWithFavorites);
+    }
+    
     res.json(prompts);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -150,6 +204,59 @@ app.get('/api/prompts', async (req, res) => {
 
 app.post('/api/prompts', authMiddleware, async (req, res) => {
   try {
+    const { label, description, tips, drills, links } = req.body;
+    
+    // Validate required fields
+    if (!label || !description) {
+      return res.status(400).json({ error: 'Label and description are required' });
+    }
+    
+    // Validate drills array structure
+    if (drills && Array.isArray(drills)) {
+      for (const drill of drills) {
+        if (!drill.icon || !drill.text) {
+          return res.status(400).json({ error: 'Each drill must have an icon and text' });
+        }
+      }
+    }
+    
+    // Validate and process links array structure
+    if (links && Array.isArray(links)) {
+      for (const link of links) {
+        if (!link.title || !link.url) {
+          return res.status(400).json({ error: 'Each link must have a title and url' });
+        }
+        
+        // Validate link type
+        if (link.type && !['youtube', 'website'].includes(link.type)) {
+          return res.status(400).json({ error: 'Link type must be either "youtube" or "website"' });
+        }
+        
+        // Basic URL validation
+        try {
+          new URL(link.url);
+        } catch (e) {
+          return res.status(400).json({ error: `Invalid URL: ${link.url}` });
+        }
+        
+        // Extract YouTube video ID if it's a YouTube link
+        if (link.type === 'youtube' || link.url.includes('youtube.com') || link.url.includes('youtu.be')) {
+          const videoId = extractYouTubeVideoId(link.url);
+          if (videoId) {
+            link.videoId = videoId;
+            if (!link.type) link.type = 'youtube';
+          } else if (link.type === 'youtube') {
+            return res.status(400).json({ error: `Invalid YouTube URL: ${link.url}` });
+          }
+        }
+        
+        // Default to website if no type specified
+        if (!link.type) {
+          link.type = 'website';
+        }
+      }
+    }
+    
     const prompt = new Prompt({ ...req.body, submittedBy: req.user._id });
     await prompt.save();
     await updateStats();
@@ -207,6 +314,69 @@ app.post('/api/prompts/:id/view', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// ❤️ FAVORITES ROUTES
+// ═══════════════════════════════════════════════════════════
+app.post('/api/users/:userId/favorites/:promptId', authMiddleware, async (req, res) => {
+  try {
+    // Verify user is adding to their own favorites
+    if (req.user._id.toString() !== req.params.userId) {
+      return res.status(403).json({ error: 'Cannot modify another user\'s favorites' });
+    }
+
+    // Check if prompt exists
+    const prompt = await Prompt.findById(req.params.promptId);
+    if (!prompt) {
+      return res.status(404).json({ error: 'Prompt not found' });
+    }
+
+    // Add to favorites if not already there
+    const user = await User.findById(req.params.userId);
+    if (!user.favoritePrompts.includes(req.params.promptId)) {
+      user.favoritePrompts.push(req.params.promptId);
+      await user.save();
+    }
+
+    res.json({ message: 'Added to favorites', favorites: user.favoritePrompts });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/users/:userId/favorites/:promptId', authMiddleware, async (req, res) => {
+  try {
+    // Verify user is removing from their own favorites
+    if (req.user._id.toString() !== req.params.userId) {
+      return res.status(403).json({ error: 'Cannot modify another user\'s favorites' });
+    }
+
+    // Remove from favorites
+    const user = await User.findByIdAndUpdate(
+      req.params.userId,
+      { $pull: { favoritePrompts: req.params.promptId } },
+      { new: true }
+    );
+
+    res.json({ message: 'Removed from favorites', favorites: user.favoritePrompts });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get('/api/users/:userId/favorites', authMiddleware, async (req, res) => {
+  try {
+    // Verify user is accessing their own favorites
+    if (req.user._id.toString() !== req.params.userId) {
+      return res.status(403).json({ error: 'Cannot access another user\'s favorites' });
+    }
+
+    const user = await User.findById(req.params.userId).populate('favoritePrompts');
+    res.json(user.favoritePrompts || []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
 // 📊 ADMIN ROUTES
 // ═══════════════════════════════════════════════════════════
 app.get('/api/admin/stats', authMiddleware, adminMiddleware, async (req, res) => {
@@ -225,6 +395,15 @@ app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) =>
   try {
     const users = await User.find().select('-password');
     res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/prompts/all', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const prompts = await Prompt.find().populate('submittedBy', 'username').sort({ createdAt: -1 });
+    res.json(prompts);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -299,8 +478,16 @@ app.post('/api/create-drills', async (req, res) => {
 async function updateStats() {
   const totalPrompts = await Prompt.countDocuments({ status: 'approved' });
   const totalUsers = await User.countDocuments();
-  const totalViews = await Prompt.aggregate([{ $group: { _id: null, total: { $sum: '$views' } } }]);
-  const totalLikes = await Prompt.aggregate([{ $group: { _id: null, total: { $sum: '$likes' } } }]);
+  
+  // Only sum views/likes from approved prompts
+  const totalViews = await Prompt.aggregate([
+    { $match: { status: 'approved' } },
+    { $group: { _id: null, total: { $sum: '$views' } } }
+  ]);
+  const totalLikes = await Prompt.aggregate([
+    { $match: { status: 'approved' } },
+    { $group: { _id: null, total: { $sum: '$likes' } } }
+  ]);
   
   return await Stat.findOneAndUpdate(
     {},

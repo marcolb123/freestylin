@@ -7,6 +7,7 @@
     "dev": "vite",
     "server": "node server.js",
     "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
+    "seed": "node seed.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
