@@ -69,7 +69,6 @@ A React-based web application that helps dancers practice freestyle by providing
    ```env
    MONGODB_URI=mongodb://localhost:27017/freestyle-dance
    JWT_SECRET=your-secret-key-here
-   OPENAI_API_KEY=your-openai-key-here
    ```
 
 5. **Seed the database**
@@ -196,6 +195,9 @@ Each prompt includes:
 - `POST /api/prompts` - Submit new prompt
 - `PUT /api/prompts/:id` - Update prompt status
 - `DELETE /api/prompts/:id` - Delete prompt
+- `POST /api/users/:userId/favorites/:promptId` - Add to favorites
+- `DELETE /api/users/:userId/favorites/:promptId` - Remove from favorites
+- `GET /api/users/:userId/favorites` - Get user's favorites
 
 ### Admin Endpoints
 - `GET /api/admin/stats` - Get platform statistics
