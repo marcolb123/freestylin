@@ -975,6 +975,11 @@ function FavoriteButton({ prompt, isFavorited: initialFavorited, onToggle }) {
     const [isFavorited, setIsFavorited] = useState(initialFavorited || false);
     const [loading, setLoading] = useState(false);
 
+    // Add useEffect to sync state when prompt changes
+    useEffect(() => {
+        setIsFavorited(initialFavorited || false);
+    }, [initialFavorited, prompt._id]); // Reset when prompt ID or favorite status changes
+
     const handleFavoriteToggle = async (e) => {
         e.stopPropagation(); // Prevent event bubbling
 
@@ -1120,7 +1125,7 @@ function FavoritesPage() {
                     </div>
                 ) : (
                     <div>
-                        <p style={{ marginBottom: '1.5rem', color: '#666' }}>
+                        <p style={{ marginBottom: '1.5rem', color: '#ffffff' }}>
                             You have {favorites.length} favorite prompt{favorites.length !== 1 ? 's' : ''}
                         </p>
                         <div style={{ display: 'grid', gap: '1.5rem' }}>
