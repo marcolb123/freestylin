@@ -766,59 +766,126 @@ function AdminDashboard() {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    backgroundColor: 'rgba(0,0,0,0.8)',
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    zIndex: 1000
+                    zIndex: 1000,
+                    padding: '1rem'
                 }}>
                     <div style={{
-                        backgroundColor: 'white',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         padding: '2rem',
-                        borderRadius: '12px',
+                        borderRadius: '20px',
                         maxWidth: '600px',
                         maxHeight: '80vh',
                         overflow: 'auto',
-                        width: '90%'
+                        width: '90%',
+                        color: 'white',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
                     }}>
-                        <h2>{selectedPrompt.label}</h2>
-                        <p><strong>Status:</strong> {selectedPrompt.status}</p>
-                        <p><strong>Description:</strong> {selectedPrompt.description}</p>
+                        <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '2rem' }}>{selectedPrompt.label}</h2>
+                        
+                        <div style={{ 
+                            background: 'rgba(255, 255, 255, 0.1)', 
+                            padding: '0.75rem', 
+                            borderRadius: '8px',
+                            marginBottom: '1rem'
+                        }}>
+                            <p style={{ margin: 0 }}><strong>Status:</strong> {selectedPrompt.status}</p>
+                        </div>
+                        
+                        <p style={{ marginBottom: '1.5rem', lineHeight: '1.6' }}>
+                            <strong>Description:</strong> {selectedPrompt.description}
+                        </p>
                         
                         {selectedPrompt.tips?.length > 0 && (
-                            <>
-                                <h3>Tips:</h3>
-                                <ul>
-                                    {selectedPrompt.tips.map((tip, i) => <li key={i}>{tip}</li>)}
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <h3 style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px',
+                                    fontSize: '1.3rem',
+                                    marginBottom: '0.75rem'
+                                }}>
+                                    <Lightbulb size={20} /> Tips:
+                                </h3>
+                                <ul style={{ 
+                                    margin: 0, 
+                                    paddingLeft: '1.5rem',
+                                    lineHeight: '1.8'
+                                }}>
+                                    {selectedPrompt.tips.map((tip, i) => (
+                                        <li key={i} style={{ marginBottom: '0.5rem' }}>{tip}</li>
+                                    ))}
                                 </ul>
-                            </>
+                            </div>
                         )}
                         
                         {selectedPrompt.drills?.length > 0 && (
-                            <>
-                                <h3>Drills:</h3>
-                                <ul>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <h3 style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px',
+                                    fontSize: '1.3rem',
+                                    marginBottom: '0.75rem'
+                                }}>
+                                    <Dumbbell size={20} /> Drills:
+                                </h3>
+                                <ul style={{ 
+                                    margin: 0, 
+                                    paddingLeft: '1.5rem',
+                                    lineHeight: '1.8'
+                                }}>
                                     {selectedPrompt.drills.map((drill, i) => (
-                                        <li key={i}><strong>{drill.icon}:</strong> {drill.text}</li>
-                                    ))}
-                                </ul>
-                            </>
-                        )}
-                        
-                        {selectedPrompt.links?.length > 0 && (
-                            <>
-                                <h3>Resource Links:</h3>
-                                <ul>
-                                    {selectedPrompt.links.map((link, i) => (
-                                        <li key={i}>
-                                            <a href={link.url} target="_blank" rel="noopener noreferrer">{link.title}</a>
+                                        <li key={i} style={{ marginBottom: '0.5rem' }}>
+                                            <strong>{drill.icon}:</strong> {drill.text}
                                         </li>
                                     ))}
                                 </ul>
-                            </>
+                            </div>
+                        )}
+                        
+                        {selectedPrompt.links?.length > 0 && (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <h3 style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px',
+                                    fontSize: '1.3rem',
+                                    marginBottom: '0.75rem'
+                                }}>
+                                    <LinkIcon size={20} /> Resource Links:
+                                </h3>
+                                <ul style={{ 
+                                    margin: 0, 
+                                    paddingLeft: '1.5rem',
+                                    lineHeight: '1.8'
+                                }}>
+                                    {selectedPrompt.links.map((link, i) => (
+                                        <li key={i} style={{ marginBottom: '0.5rem' }}>
+                                            <a 
+                                                href={link.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                style={{ 
+                                                    color: 'white', 
+                                                    textDecoration: 'underline',
+                                                    transition: 'opacity 0.3s'
+                                                }}
+                                                onMouseEnter={(e) => e.target.style.opacity = '0.8'}
+                                                onMouseLeave={(e) => e.target.style.opacity = '1'}
+                                            >
+                                                {link.title}
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                             {selectedPrompt.status === 'pending' && (
                                 <>
                                     <button onClick={() => approvePrompt(selectedPrompt._id)} className="btn btn-spin">Approve</button>
