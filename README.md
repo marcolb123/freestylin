@@ -1,4 +1,4 @@
-# 💃 Freestyle Dance Prompt App 🕺
+#  Freestyle Dance Prompt App
 
 A React-based web application that helps dancers practice freestyle by providing random prompts, practice tips, video resources, curated practice drills, and music mixes to dance to.
 
@@ -6,7 +6,7 @@ A React-based web application that helps dancers practice freestyle by providing
 ![Vite](https://img.shields.io/badge/Vite-7.1.2-purple)
 ![Lucide](https://img.shields.io/badge/Lucide_React-0.553.0-orange)
 
-## 🎨 Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **React 19.1.1** - UI framework
@@ -22,89 +22,33 @@ A React-based web application that helps dancers practice freestyle by providing
 - **JWT** - Authentication
 - **bcryptjs** - Password hashing
 
-## ✨ Features
+##  Features
 
 ### Core Features
-- 🎲 **Random Prompt Generator** - Spin to get dance prompts like Bounce, Waves, Isolations, Levels, and more
-- 💡 **Practice Tips** - Detailed tips for each dance move
-- 📺 **Video Resources** - Embedded YouTube tutorials for visual learning
-- 🏋️ **Practice Drills** - Curated, specific drills to improve each movement concept
-- 🎵 **Music Player** - SoundCloud mixes for House, Krump, Hip-Hop, and Popping
-- 🎨 **Modern UI** - Beautiful graffiti-themed background with glassmorphism effects
+-  **Random Prompt Generator** - Spin to get dance prompts like Bounce, Waves, Isolations, Levels, and more
+-  **Practice Tips** - Detailed tips for each dance move
+-  **Video Resources** - Embedded YouTube tutorials for visual learning
+-  **Practice Drills** - Curated, specific drills to improve each movement concept
+-  **Music Player** - SoundCloud mixes for House, Krump, Hip-Hop, and Popping
+
 
 ### New Features (Database-Driven)
-- 🗄️ **MongoDB Integration** - All prompts stored in database
-- 👤 **User Authentication** - Login/Register system
-- ➕ **Submit Prompts** - Users can submit new prompts for review
-- 👑 **Admin Dashboard** - Manage prompts, view stats, approve/reject submissions
-- 📊 **Analytics** - Track views, likes, and user engagement
+-  **MongoDB Integration** - All prompts stored in database
+-  **User Authentication** - Login/Register system
+-  **Submit Prompts** - Users can submit new prompts for review
+-  **Admin Dashboard** - Manage prompts, view stats, approve/reject submissions
+-  **Analytics** - Track views, likes, and user engagement
 
-## 🚀 Getting Started
 
-### Prerequisites
+##  Usage
 
-- Node.js (v18 or higher)
-- npm or yarn
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd freestyle-prompt
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Setup MongoDB**
-   
-   Make sure MongoDB is installed and running on your system, or use MongoDB Atlas (cloud).
-
-4. **Create .env file**
-   
-   Create a `.env` file in the root directory:
-   ```env
-   MONGODB_URI=mongodb://localhost:27017/freestyle-dance
-   JWT_SECRET=your-secret-key-here
-   ```
-
-5. **Seed the database**
-   
-   Run this command to populate the database with initial prompts:
-   ```bash
-   npm run seed
-   ```
-
-6. **Start both frontend and backend**
-   ```bash
-   npm run dev:full
-   ```
-   
-   Or run them separately:
-   ```bash
-   # Terminal 1 - Frontend
-   npm run dev
-   
-   # Terminal 2 - Backend
-   npm run server
-   ```
-
-7. **Open your browser**
-   
-   Navigate to `http://localhost:5173` (frontend) and the backend runs on `http://localhost:3001`
-
-## 🎯 Usage
-
-1. **Spin a Prompt** - Click "🎲 Spin Prompt" to get a random dance prompt
-2. **View Tips** - Click "💡 Tips" to see practice suggestions
-3. **Watch Tutorials** - Click "📺 Resources" to view embedded YouTube videos
-4. **Practice Drills** - Click "🏋️ Practice Drills" to see curated exercises for that prompt
+1. **Spin a Prompt** - Click " Spin Prompt" to get a random dance prompt
+2. **View Tips** - Click " Tips" to see practice suggestions
+3. **Watch Tutorials** - Click " Resources" to view embedded YouTube videos
+4. **Practice Drills** - Click " Practice Drills" to see curated exercises for that prompt
 5. **Choose Music** - Select a genre (House, Krump, Hip-Hop, Popping) to play a SoundCloud mix
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 freestyle-prompt/
@@ -124,7 +68,7 @@ freestyle-prompt/
 └── README.md                     # You are here!
 ```
 
-## 📊 Dance Prompts Included
+##  Dance Prompts Included
 
 1. **Bounce** - Elastic, rhythmic movement with 4 curated drills
 2. **Waves** - Fluid body waves through different body parts
@@ -136,19 +80,19 @@ freestyle-prompt/
 8. **Floor Work** - Ground-based movement and transitions
 
 Each prompt includes:
-- ✅ Detailed description
-- ✅ 3-4 practice tips
-- ✅ 4 progressive drills
-- ✅ YouTube tutorial links
+-  Detailed description
+-  3-4 practice tips
+-  4 progressive drills
+- YouTube tutorial links
 
-## 🎵 Music Genres
+##  Music Genres
 
 - **House** - Afro Tribal House Mix
 - **Krump** - High-energy Krump Mix
 - **Hip-Hop** - Old School Hip-Hop Mix
 - **Popping** - Funky Popping Mix
 
-## 🗄️ Database Schema
+##  Database Schema
 
 ### Prompt Schema
 ```javascript
@@ -183,7 +127,7 @@ Each prompt includes:
 }
 ```
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 ### Public Endpoints
 - `GET /api/prompts` - Get all approved prompts
@@ -204,23 +148,14 @@ Each prompt includes:
 - `GET /api/admin/users` - Get all users
 - `GET /api/admin/prompts/all` - Get all prompts (any status)
 
-## 🛠️ Available Scripts
 
-```bash
-npm run dev          # Start frontend dev server (localhost:5173)
-npm run server       # Start backend server (localhost:3001)
-npm run dev:full     # Start both frontend and backend concurrently
-npm run seed         # Seed database with initial prompts
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
 ```
 
-## 📝 Adding New Prompts
+##  Adding New Prompts
 
-There are three ways to add new prompts:
 
-### 1. Through the Web Interface (Recommended)
+
+###  Through the Web Interface 
 - Register/Login to the app
 - Click "Submit Prompt" button
 - Fill out the form with:
@@ -231,61 +166,6 @@ There are three ways to add new prompts:
 - Submit for admin review
 - Admin approves/rejects from the Admin Dashboard
 
-### 2. Via Database Seed Script
-Edit `seed.js` and add to the `PROMPTS` array:
-
-```javascript
-{
-  label: "Your Prompt Name",
-  description: "Brief description of the movement",
-  tips: [
-    "Tip 1",
-    "Tip 2",
-    "Tip 3"
-  ],
-  drills: [
-    { icon: "Target", text: "Drill 1: Description with steps" },
-    { icon: "RotateCw", text: "Drill 2: Description with steps" },
-    { icon: "Timer", text: "Drill 3: Description with steps" }
-  ],
-  links: [
-    {
-      title: "Tutorial title",
-      url: "https://youtube.com/watch?v=..."
-    }
-  ]
-}
-```
-
-Then run: `npm run seed`
-
-### 3. Direct Database Insert
-Use MongoDB Compass or mongosh to insert directly into the database.
-
-## 🎨 Customization
-
-### Change Background Image
-Replace `public/graffiti-background.png` with your own image
-
-### Add Music Genres
-Edit the `MUSIC_GENRES` array in [`src/App.jsx`](src/App.jsx):
-
-```javascript
-{
-  name: "Genre Name",
-  soundCloudUrl: "https://soundcloud.com/...",
-  color: "#HexColor"
-}
-```
-
-## 🙏 Acknowledgments
-
-- YouTube for tutorial embeds
-- SoundCloud for music integration
-- Lucide React for beautiful icons
-- The dance community for inspiration
-
-## 📧 Contact
 
 For questions or feedback, reach out at marcobarot@gmail.com
 
