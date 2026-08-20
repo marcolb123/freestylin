@@ -42,24 +42,6 @@ const PromptSchema = new mongoose.Schema({
 const Prompt = mongoose.model('Prompt', PromptSchema);
 
 // ═══════════════════════════════════════════════════════════
-// 🎥 YOUTUBE HELPER FUNCTION
-// ═══════════════════════════════════════════════════════════
-function extractYouTubeVideoId(url) {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/shorts\/([^&\n?#]+)/
-  ];
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) {
-      return match[1];
-    }
-  }
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════
 // 📚 PROMPTS DATA (extracted from App.jsx)
 // ═══════════════════════════════════════════════════════════
 const PROMPTS = [

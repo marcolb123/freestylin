@@ -41,7 +41,7 @@ import {
 // ═══════════════════════════════════════════════════════════
 const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
+const useAuth = () => useContext(AuthContext);
 
 function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -223,7 +223,7 @@ function LoginPage() {
             } else {
                 alert(data.error);
             }
-        } catch (error) {
+        } catch {
             alert('Login failed');
         }
     };
@@ -266,7 +266,7 @@ function RegisterPage() {
             } else {
                 alert(data.error);
             }
-        } catch (error) {
+        } catch {
             alert('Registration failed');
         }
     };
@@ -346,7 +346,7 @@ function SubmitPromptPage() {
             } else {
                 setMessage({ type: 'error', text: data.error || 'Submission failed' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Network error. Please try again.' });
         }
     };
@@ -608,7 +608,7 @@ function AdminDashboard() {
     const approvePrompt = async (id) => {
         const token = localStorage.getItem('token');
         try {
-            await fetch(`http://localhost:3001/api/prompts/${id}`, {
+            await fetch(`${API_URL}/api/prompts/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ status: 'approved' })
@@ -618,7 +618,7 @@ function AdminDashboard() {
             fetchAllPrompts();
             fetchStats();
             setShowDetails(false);
-        } catch (error) {
+        } catch {
             alert('Failed to approve prompt');
         }
     };
@@ -636,7 +636,7 @@ function AdminDashboard() {
             fetchAllPrompts();
             fetchStats();
             setShowDetails(false);
-        } catch (error) {
+        } catch {
             alert('Failed to reject prompt');
         }
     };
@@ -653,7 +653,7 @@ function AdminDashboard() {
             fetchAllPrompts();
             fetchStats();
             setShowDeleteConfirm(null);
-        } catch (error) {
+        } catch {
             alert('Failed to delete prompt');
         }
     };
@@ -1188,10 +1188,11 @@ function PromptCard() {
         try {
             setLoading(true);
             setError(null);
-            const url = user 
+            const url = user
                 ? `${API_URL}/api/prompts?userId=${user.id}`
                 : `${API_URL}/api/prompts`;
-            const res = await fetch(url);
+            const token = localStorage.getItem('token');
+            const res = await fetch(url, user ? { headers: { 'Authorization': `Bearer ${token}` } } : undefined);
             if (!res.ok) {
                 throw new Error('Failed to fetch prompts from server');
             }
@@ -1412,7 +1413,7 @@ function PromptCard() {
                         <button
                             key={genre.name}
                             className={`genre-chip ${selectedGenre?.name === genre.name ? "active" : ""}`}
-                            onClick={() => selectGenre(genre)}
+                            onClick={() => setSelectedGenre(genre)}
                             style={{ 
                                 backgroundColor: selectedGenre?.name === genre.name 
                                     ? genre.color 
