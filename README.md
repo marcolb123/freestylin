@@ -39,6 +39,13 @@ A React-based web application that helps dancers practice freestyle by providing
 -  **Admin Dashboard** - Manage prompts, view stats, approve/reject submissions
 -  **Analytics** - Track views, likes, and user engagement
 
+### Training Journal
+-  **Daily Log** - Record what you trained each day: which prompts, how long, how it felt, and freeform notes
+-  **Streaks** - Consecutive-day training streak, so momentum is visible
+-  **Stats** - Total sessions, total training time, and your most-trained prompt
+-  **Log This Session** - Jump straight from a prompt you just practiced into the journal with it pre-selected
+-  **One Entry Per Day** - Re-logging the same date edits that day's entry instead of creating duplicates
+
 
 ##  Usage
 
@@ -127,6 +134,24 @@ Each prompt includes:
 }
 ```
 
+### Journal Entry Schema
+```javascript
+{
+  user: ObjectId,          // Owner (always taken from the JWT, never the URL)
+  date: String,            // 'YYYY-MM-DD' in the dancer's own timezone
+  prompts: [ObjectId],     // Which prompts were trained
+  notes: String,           // Freeform reflection
+  durationMinutes: Number, // 0-1440
+  energy: Number,          // 1-5, optional
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+`date` is a string rather than a `Date` on purpose: it anchors an entry to the
+dancer's own calendar day. Storing a timestamp would let an evening session in a
+negative-offset timezone roll over into tomorrow and break the streak count.
+A unique index on `(user, date)` enforces one entry per dancer per day.
+
 ##  API Endpoints
 
 ### Public Endpoints
@@ -142,6 +167,13 @@ Each prompt includes:
 - `POST /api/users/:userId/favorites/:promptId` - Add to favorites
 - `DELETE /api/users/:userId/favorites/:promptId` - Remove from favorites
 - `GET /api/users/:userId/favorites` - Get user's favorites
+
+### Journal Endpoints (Requires JWT, scoped to the logged-in user)
+- `GET /api/journal` - List your journal entries, newest first
+- `GET /api/journal/stats?today=YYYY-MM-DD` - Streak, total sessions, total minutes, most-trained prompt
+- `GET /api/journal/:date` - Get your entry for one date (`YYYY-MM-DD`)
+- `POST /api/journal` - Create or update your entry for a date
+- `DELETE /api/journal/:id` - Delete one of your entries
 
 ### Admin Endpoints
 - `GET /api/admin/stats` - Get platform statistics

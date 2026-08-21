@@ -22,9 +22,10 @@ const app = express();
 // Configure CORS for production
 app.use(cors({
   origin: [
-    'http://localhost:5173',                    // Local development
+    'http://localhost:3000',                    // Local development (the port vite.config.js sets)
+    'http://localhost:5173',                    // Vite's default, if the config port is changed back
     'http://localhost:5174',                    // Alternative local port
-    'https://freestylin.netlify.app',          // UPDATE with your actual Netlify URL (removed trailing slash)
+    'https://freestylin.netlify.app',          // Production frontend
   ],
   credentials: true
 }));
@@ -73,6 +74,29 @@ const PromptSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// A dancer's log of what they trained on a given day.
+// `date` is stored as a 'YYYY-MM-DD' string rather than a Date so that "which
+// day did I train" is anchored to the dancer's own calendar, not to UTC —
+// otherwise an evening session logged in a negative-offset timezone rolls over
+// into tomorrow and breaks streaks.
+const JournalEntrySchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  date: {
+    type: String,
+    required: true,
+    match: [/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format']
+  },
+  prompts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Prompt' }],
+  notes: { type: String, default: '', maxlength: 5000 },
+  durationMinutes: { type: Number, min: 0, max: 1440, default: 0 },
+  energy: { type: Number, min: 1, max: 5 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// One entry per dancer per day — POST upserts into it.
+JournalEntrySchema.index({ user: 1, date: -1 }, { unique: true });
+
 const StatSchema = new mongoose.Schema({
   totalPrompts: { type: Number, default: 0 },
   totalUsers: { type: Number, default: 0 },
@@ -84,6 +108,7 @@ const StatSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Prompt = mongoose.model('Prompt', PromptSchema);
 const Stat = mongoose.model('Stat', StatSchema);
+const JournalEntry = mongoose.model('JournalEntry', JournalEntrySchema);
 
 // ═══════════════════════════════════════════════════════════
 // 🔐 AUTHENTICATION MIDDLEWARE
@@ -394,6 +419,173 @@ app.get('/api/users/:userId/favorites', authMiddleware, async (req, res) => {
     res.json(user.favoritePrompts || []);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// 📓 TRAINING JOURNAL ROUTES
+// ═══════════════════════════════════════════════════════════
+// Every route here scopes to req.user._id from the verified token. The entry
+// id / date in the URL is never trusted on its own to identify whose log it is.
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Days between two 'YYYY-MM-DD' strings, compared at UTC midnight so the
+// arithmetic can't be skewed by the server's local timezone or by DST.
+function daysBetween(isoA, isoB) {
+  const MS_PER_DAY = 86400000;
+  return Math.round((Date.parse(`${isoA}T00:00:00Z`) - Date.parse(`${isoB}T00:00:00Z`)) / MS_PER_DAY);
+}
+
+// Longest run of consecutive logged days ending today or yesterday. Yesterday
+// still counts so that a streak isn't reported as broken simply because the
+// dancer hasn't trained yet today.
+function computeStreak(sortedDatesDesc, today) {
+  if (sortedDatesDesc.length === 0) return 0;
+
+  const offset = daysBetween(today, sortedDatesDesc[0]);
+  if (offset > 1) return 0;   // most recent entry is older than yesterday
+
+  let streak = 1;
+  for (let i = 1; i < sortedDatesDesc.length; i++) {
+    if (daysBetween(sortedDatesDesc[i - 1], sortedDatesDesc[i]) !== 1) break;
+    streak++;
+  }
+  return streak;
+}
+
+app.get('/api/journal', authMiddleware, async (req, res) => {
+  try {
+    const entries = await JournalEntry.find({ user: req.user._id })
+      .populate('prompts', 'label description')
+      .sort({ date: -1 });
+    res.json(entries);
+  } catch (error) {
+    console.error('Failed to list journal entries:', error);
+    res.status(500).json({ error: 'Failed to load journal entries' });
+  }
+});
+
+// Registered before '/:date' so that 'stats' isn't captured as a date param.
+app.get('/api/journal/stats', authMiddleware, async (req, res) => {
+  try {
+    const { today } = req.query;
+    if (!today || !DATE_RE.test(today)) {
+      return res.status(400).json({ error: 'A `today` query param in YYYY-MM-DD format is required' });
+    }
+
+    const entries = await JournalEntry.find({ user: req.user._id })
+      .select('date durationMinutes prompts')
+      .sort({ date: -1 });
+
+    const uniqueDates = [...new Set(entries.map(e => e.date))];
+    const promptCounts = new Map();
+    for (const entry of entries) {
+      for (const promptId of entry.prompts) {
+        const key = promptId.toString();
+        promptCounts.set(key, (promptCounts.get(key) || 0) + 1);
+      }
+    }
+
+    let mostTrained = null;
+    if (promptCounts.size > 0) {
+      const [topId, count] = [...promptCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+      const prompt = await Prompt.findById(topId).select('label');
+      if (prompt) mostTrained = { label: prompt.label, count };
+    }
+
+    res.json({
+      totalSessions: entries.length,
+      totalMinutes: entries.reduce((sum, e) => sum + (e.durationMinutes || 0), 0),
+      currentStreak: computeStreak(uniqueDates, today),
+      mostTrained
+    });
+  } catch (error) {
+    console.error('Failed to compute journal stats:', error);
+    res.status(500).json({ error: 'Failed to load journal stats' });
+  }
+});
+
+app.get('/api/journal/:date', authMiddleware, async (req, res) => {
+  try {
+    if (!DATE_RE.test(req.params.date)) {
+      return res.status(400).json({ error: 'Date must be in YYYY-MM-DD format' });
+    }
+
+    const entry = await JournalEntry.findOne({ user: req.user._id, date: req.params.date })
+      .populate('prompts', 'label description');
+    if (!entry) return res.status(404).json({ error: 'No entry for that date' });
+
+    res.json(entry);
+  } catch (error) {
+    console.error('Failed to fetch journal entry:', error);
+    res.status(500).json({ error: 'Failed to load journal entry' });
+  }
+});
+
+// Upsert: one entry per dancer per day, so re-logging the same date edits it.
+app.post('/api/journal', authMiddleware, async (req, res) => {
+  try {
+    const { date, prompts, notes, durationMinutes, energy } = req.body;
+
+    if (!date || !DATE_RE.test(date)) {
+      return res.status(400).json({ error: 'Date must be in YYYY-MM-DD format' });
+    }
+    if (!notes?.trim() && !(prompts?.length)) {
+      return res.status(400).json({ error: 'Add some notes or pick at least one prompt you trained' });
+    }
+    if (durationMinutes != null && (!Number.isFinite(durationMinutes) || durationMinutes < 0 || durationMinutes > 1440)) {
+      return res.status(400).json({ error: 'Duration must be between 0 and 1440 minutes' });
+    }
+    if (energy != null && (!Number.isInteger(energy) || energy < 1 || energy > 5)) {
+      return res.status(400).json({ error: 'Energy must be a whole number from 1 to 5' });
+    }
+
+    // Only accept prompt ids that actually exist, so the log can't accumulate
+    // dangling references that break the populate on read.
+    let promptIds = [];
+    if (prompts?.length) {
+      const found = await Prompt.find({ _id: { $in: prompts } }).select('_id');
+      if (found.length !== prompts.length) {
+        return res.status(400).json({ error: 'One or more selected prompts do not exist' });
+      }
+      promptIds = found.map(p => p._id);
+    }
+
+    const entry = await JournalEntry.findOneAndUpdate(
+      { user: req.user._id, date },
+      {
+        user: req.user._id,
+        date,
+        prompts: promptIds,
+        notes: notes?.trim() || '',
+        durationMinutes: durationMinutes || 0,
+        ...(energy != null ? { energy } : {}),
+        updatedAt: new Date()
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).populate('prompts', 'label description');
+
+    res.json(entry);
+  } catch (error) {
+    console.error('Failed to save journal entry:', error);
+    res.status(500).json({ error: 'Failed to save journal entry' });
+  }
+});
+
+app.delete('/api/journal/:id', authMiddleware, async (req, res) => {
+  try {
+    // Scoped by user so one dancer can't delete another's entry by guessing ids.
+    const deleted = await JournalEntry.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id
+    });
+    if (!deleted) return res.status(404).json({ error: 'Entry not found' });
+
+    res.json({ message: 'Entry deleted' });
+  } catch (error) {
+    console.error('Failed to delete journal entry:', error);
+    res.status(500).json({ error: 'Failed to delete journal entry' });
   }
 });
 
