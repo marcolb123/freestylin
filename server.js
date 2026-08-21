@@ -10,6 +10,10 @@ import jwt from 'jsonwebtoken';        // JSON Web Token
 
 dotenv.config();                      // Read .env file
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
 // ═══════════════════════════════════════════════════════════
 // ⚙️ SETUP: Initialize server
 // ═══════════════════════════════════════════════════════════
@@ -89,10 +93,10 @@ const authMiddleware = async (req, res, next) => {
   if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.userId);
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -133,7 +137,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     await updateStats();
     
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your-secret-key');
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user._id, username, email, isAdmin: user.isAdmin } });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -148,7 +152,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your-secret-key');
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user._id, username: user.username, email, isAdmin: user.isAdmin } });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -161,9 +165,20 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/prompts', async (req, res) => {
   try {
     const { search, status, userId } = req.query;
-    // If status is provided, filter by it; otherwise return only approved prompts
+    // Only admins may request non-approved statuses (pending/rejected submissions)
     const filter = {};
-    if (status) {
+    if (status && status !== 'approved') {
+      const token = req.headers.authorization?.split(' ')[1];
+      let requester = null;
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        requester = await User.findById(decoded.userId);
+      } catch {
+        // no-op: requester stays null, falls through to 403 below
+      }
+      if (!requester?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
       filter.status = status;
     } else {
       filter.status = 'approved';  // Default to approved for public viewing
@@ -178,8 +193,19 @@ app.get('/api/prompts', async (req, res) => {
     
     const prompts = await Prompt.find(filter).populate('submittedBy', 'username');
     
-    // If userId provided, add isFavorited field to each prompt
+    // If userId provided, add isFavorited field to each prompt (only for the authenticated owner)
     if (userId) {
+      const token = req.headers.authorization?.split(' ')[1];
+      let requesterId = null;
+      try {
+        requesterId = jwt.verify(token, process.env.JWT_SECRET).userId;
+      } catch {
+        // no-op: unauthenticated/invalid token, favorites enrichment skipped below
+      }
+      if (requesterId !== userId) {
+        return res.json(prompts);
+      }
+
       const user = await User.findById(userId);
       const favoriteIds = user?.favoritePrompts?.map(id => id.toString()) || [];
       
@@ -199,7 +225,7 @@ app.get('/api/prompts', async (req, res) => {
 
 app.post('/api/prompts', authMiddleware, async (req, res) => {
   try {
-    const { label, description, tips, drills, links } = req.body;
+    const { label, description, drills, links } = req.body;
     
     // Validate required fields
     if (!label || !description) {
@@ -230,7 +256,7 @@ app.post('/api/prompts', authMiddleware, async (req, res) => {
         // Basic URL validation
         try {
           new URL(link.url);
-        } catch (e) {
+        } catch {
           return res.status(400).json({ error: `Invalid URL: ${link.url}` });
         }
         
