@@ -1,7 +1,9 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 import "./App.css";
 import { API_URL } from "./config";
+import { AuthContext, useAuth } from "./auth-context";
+import JournalPage from "./JournalPage";
 // Import icons from Lucide React
 import { 
     Sparkles, 
@@ -33,16 +35,13 @@ import {
     Route as RouteIcon,  // ← Rename this to avoid conflict with React Router's Route
     Circle,
     Heart,
+    BookOpen,
     Link as LinkIcon
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════
 // 🔐 AUTH CONTEXT
 // ═══════════════════════════════════════════════════════════
-const AuthContext = createContext();
-
-const useAuth = () => useContext(AuthContext);
-
 function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -68,8 +67,12 @@ function AuthProvider({ children }) {
         setUser(null);
     };
 
+    // Memoized so consumers don't re-render on every AuthProvider render just
+    // because the context value was a freshly-allocated object.
+    const value = useMemo(() => ({ user, login, logout, loading }), [user, loading]);
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
@@ -142,6 +145,7 @@ export default function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/submit" element={<SubmitPromptPage />} />
                 <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
+                <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             </Routes>
         </AuthProvider>
@@ -178,6 +182,9 @@ function MainPage() {
                             <span>Welcome, {user.username}!</span>
                             <button onClick={() => navigate('/favorites')} className="btn btn-nav">
                                 <Heart size={16} /> My Favorites
+                            </button>
+                            <button onClick={() => navigate('/journal')} className="btn btn-nav">
+                                <BookOpen size={16} /> Journal
                             </button>
                             <button onClick={() => navigate('/submit')} className="btn btn-nav">Submit Prompt</button>
                             {user.isAdmin && <button onClick={() => navigate('/admin')} className="btn btn-nav">Admin</button>}
@@ -1168,7 +1175,8 @@ function PromptCard() {
     // ─────────────────────────────────────────────────────────
     // 🔄 STATE VARIABLES: Track what's happening in the app
     // ─────────────────────────────────────────────────────────
-    const { user } = useContext(AuthContext);
+    const { user } = useAuth();
+    const navigate = useNavigate();
     const [index, setIndex] = useState(0);
     const [showTips, setShowTips] = useState(false);
     const [showResources, setShowResources] = useState(false);
@@ -1310,6 +1318,14 @@ function PromptCard() {
                 >
                     <Dumbbell size={18} /> Practice Drills
                 </button>
+                {user && (
+                    <button
+                        className="btn btn-toggle"
+                        onClick={() => navigate('/journal', { state: { promptId: current._id } })}
+                    >
+                        <BookOpen size={18} /> Log This Session
+                    </button>
+                )}
             </div>
 
             {/* ─────── TIPS LIST ─────── */}
