@@ -53,9 +53,14 @@ const UserSchema = new mongoose.Schema({
 // Add index on favoritePrompts for faster queries
 UserSchema.index({ favoritePrompts: 1 });
 
+const STYLES = ['Hip-Hop', 'Popping', 'Krump', 'House', 'Waacking', 'Breaking', 'Foundation'];
+
 const PromptSchema = new mongoose.Schema({
   label: { type: String, required: true },
   description: { type: String, required: true },
+  // 'Foundation' covers cross-style fundamentals (bounce, waves, musicality)
+  // that aren't owned by any single style.
+  style: { type: String, enum: STYLES, default: 'Foundation' },
   tips: [String],
   drills: [{
     icon: String,
@@ -187,9 +192,13 @@ app.post('/api/auth/login', async (req, res) => {
 // ═══════════════════════════════════════════════════════════
 // 📝 PROMPT ROUTES
 // ═══════════════════════════════════════════════════════════
+// Single source of truth for the style list, so the frontend filter can't
+// drift out of sync with what the schema actually accepts.
+app.get('/api/styles', (req, res) => res.json(STYLES));
+
 app.get('/api/prompts', async (req, res) => {
   try {
-    const { search, status, userId } = req.query;
+    const { search, status, userId, style } = req.query;
     // Only admins may request non-approved statuses (pending/rejected submissions)
     const filter = {};
     if (status && status !== 'approved') {
@@ -209,6 +218,13 @@ app.get('/api/prompts', async (req, res) => {
       filter.status = 'approved';  // Default to approved for public viewing
     }
     
+    if (style) {
+      if (!STYLES.includes(style)) {
+        return res.status(400).json({ error: `Unknown style. Expected one of: ${STYLES.join(', ')}` });
+      }
+      filter.style = style;
+    }
+
     if (search) {
       filter.$or = [
         { label: { $regex: search, $options: 'i' } },
@@ -250,11 +266,15 @@ app.get('/api/prompts', async (req, res) => {
 
 app.post('/api/prompts', authMiddleware, async (req, res) => {
   try {
-    const { label, description, drills, links } = req.body;
-    
+    const { label, description, drills, links, style } = req.body;
+
     // Validate required fields
     if (!label || !description) {
       return res.status(400).json({ error: 'Label and description are required' });
+    }
+
+    if (style && !STYLES.includes(style)) {
+      return res.status(400).json({ error: `Unknown style. Expected one of: ${STYLES.join(', ')}` });
     }
     
     // Validate drills array structure

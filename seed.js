@@ -12,8 +12,13 @@
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import { STYLE_PROMPTS } from './prompts-data.js';
 
 dotenv.config();
+
+// Pass --yes to skip the "prompts already exist" confirmation, so the script
+// can run in CI or any other non-interactive shell without hanging on stdin.
+const AUTO_YES = process.argv.includes('--yes') || process.argv.includes('-y');
 
 // ═══════════════════════════════════════════════════════════
 // 📊 MONGODB SCHEMA (same as in server.js)
@@ -21,6 +26,11 @@ dotenv.config();
 const PromptSchema = new mongoose.Schema({
   label: { type: String, required: true },
   description: { type: String, required: true },
+  style: {
+    type: String,
+    enum: ['Hip-Hop', 'Popping', 'Krump', 'House', 'Waacking', 'Breaking', 'Foundation'],
+    default: 'Foundation'
+  },
   tips: [String],
   drills: [{
     icon: String,
@@ -249,7 +259,7 @@ async function seedDatabase() {
 
     // Check if prompts already exist
     const existingCount = await Prompt.countDocuments({ status: 'approved' });
-    if (existingCount > 0) {
+    if (existingCount > 0 && !AUTO_YES) {
       console.log(`⚠️  Database already contains ${existingCount} approved prompt(s).`);
       const readline = await import('readline');
       const rl = readline.createInterface({
@@ -269,18 +279,45 @@ async function seedDatabase() {
       }
     }
 
+    // Existing prompts predate the `style` field, so give them one before the
+    // style filter starts hiding anything that isn't categorised.
+    const backfilled = await Prompt.updateMany(
+      { $or: [{ style: { $exists: false } }, { style: null }] },
+      { $set: { style: 'Foundation' } }
+    );
+    if (backfilled.modifiedCount > 0) {
+      console.log(`🏷️  Backfilled ${backfilled.modifiedCount} existing prompt(s) as "Foundation"`);
+    }
+
+    // The original prompts are cross-style fundamentals; the new ones carry
+    // their own style.
+    const ALL_PROMPTS = [
+      ...PROMPTS.map(p => ({ ...p, style: p.style || 'Foundation' })),
+      ...STYLE_PROMPTS
+    ];
+
     // Insert prompts
     console.log('🌱 Seeding prompts...');
     let addedCount = 0;
     let skippedCount = 0;
+    let updatedCount = 0;
 
-    for (const promptData of PROMPTS) {
+    for (const promptData of ALL_PROMPTS) {
       // Check if prompt with this label already exists
       const existing = await Prompt.findOne({ label: promptData.label });
       
       if (existing) {
-        console.log(`⏭️  Skipping "${promptData.label}" (already exists)`);
-        skippedCount++;
+        // Don't overwrite an existing prompt's content, but do correct its
+        // style so a re-run re-categorises prompts seeded before styles existed.
+        if (promptData.style && existing.style !== promptData.style) {
+          existing.style = promptData.style;
+          await existing.save();
+          console.log(`🏷️  Re-styled "${promptData.label}" as ${promptData.style}`);
+          updatedCount++;
+        } else {
+          console.log(`⏭️  Skipping "${promptData.label}" (already exists)`);
+          skippedCount++;
+        }
       } else {
         await Prompt.create({
           ...promptData,
@@ -288,15 +325,25 @@ async function seedDatabase() {
           likes: 0,
           views: 0
         });
-        console.log(`✅ Added "${promptData.label}"`);
+        console.log(`✅ Added "${promptData.label}" (${promptData.style})`);
         addedCount++;
       }
     }
 
     console.log('\n📊 Seeding Summary:');
     console.log(`   ✅ Added: ${addedCount} prompt(s)`);
+    console.log(`   🏷️  Re-styled: ${updatedCount} prompt(s)`);
     console.log(`   ⏭️  Skipped: ${skippedCount} prompt(s) (already existed)`);
     console.log(`   📦 Total in database: ${await Prompt.countDocuments()}`);
+
+    const byStyle = await Prompt.aggregate([
+      { $group: { _id: '$style', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    console.log('\n🕺 Prompts by style:');
+    for (const row of byStyle) {
+      console.log(`   ${row._id || 'uncategorised'}: ${row.count}`);
+    }
     console.log('\n🎉 Seeding complete!');
 
     await mongoose.disconnect();
