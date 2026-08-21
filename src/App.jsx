@@ -84,6 +84,21 @@ function AuthProvider({ children }) {
 // All prompts are now fetched from the database via API.
 // To add new prompts to the database, run: npm run seed
 
+// 🕺 STREET & CLUB STYLES: display order and colour for the style filter.
+// 'Foundation' holds cross-style fundamentals (bounce, waves, musicality).
+const STYLE_ORDER = [
+    { name: "Hip-Hop", color: "#FFE66D" },
+    { name: "Popping", color: "#4ECDC4" },
+    { name: "Krump", color: "#FF6B6B" },
+    { name: "House", color: "#95E1D3" },
+    { name: "Waacking", color: "#C77DFF" },
+    { name: "Breaking", color: "#FFA36C" },
+    { name: "Foundation", color: "#A0A0A0" },
+];
+
+const styleColor = (style) =>
+    STYLE_ORDER.find(s => s.name === style)?.color || "#A0A0A0";
+
 // 🎵 MUSIC GENRES: SoundCloud mixes by genre
 const MUSIC_GENRES = [
     {
@@ -1185,8 +1200,37 @@ function PromptCard() {
     const [prompts, setPrompts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
-    const current = prompts[index];
+    const [selectedStyle, setSelectedStyle] = useState(null);
+
+    // Only offer chips for styles that actually have prompts, so the filter
+    // can't lead somewhere empty.
+    const availableStyles = useMemo(() => {
+        const present = new Set(prompts.map(p => p.style || 'Foundation'));
+        return STYLE_ORDER.filter(s => present.has(s.name));
+    }, [prompts]);
+
+    const visiblePrompts = useMemo(
+        () => selectedStyle
+            ? prompts.filter(p => (p.style || 'Foundation') === selectedStyle)
+            : prompts,
+        [prompts, selectedStyle]
+    );
+
+    const current = visiblePrompts[index];
+
+    const chooseStyle = (style) => {
+        setSelectedStyle(style);
+        setIndex(0);              // the old index may not exist in the new set
+        setShowTips(false);
+        setShowResources(false);
+        setShowDrills(false);
+
+        // Several styles share a name with a music genre (House, Krump,
+        // Hip-Hop, Popping). Cue the matching mix so you're training the style
+        // to the music it belongs to.
+        const matchingGenre = MUSIC_GENRES.find(g => g.name === style);
+        if (matchingGenre) setSelectedGenre(matchingGenre);
+    };
 
     useEffect(() => {
         fetchPrompts();
@@ -1222,11 +1266,16 @@ function PromptCard() {
     // 🎲 SPIN PROMPT: Get a random prompt
     // ─────────────────────────────────────────────────────────
     function spinPrompt() {
-        if (prompts.length === 0) return;
+        if (visiblePrompts.length === 0) return;
         setShowTips(false);
         setShowResources(false);
         setShowDrills(false);
-        const next = Math.floor(Math.random() * prompts.length);
+        // With more than one to choose from, never land on the current prompt
+        // again — spinning and getting the same thing feels broken.
+        let next = Math.floor(Math.random() * visiblePrompts.length);
+        if (visiblePrompts.length > 1 && next === index) {
+            next = (next + 1 + Math.floor(Math.random() * (visiblePrompts.length - 1))) % visiblePrompts.length;
+        }
         setIndex(next);
     }
 
@@ -1240,6 +1289,48 @@ function PromptCard() {
             </div>
         );
     }
+
+    // Rendered above the card in every non-loading state, so the dancer can
+    // always switch styles — including out of one that has nothing in it.
+    const styleFilter = availableStyles.length > 0 && (
+        <div className="content-box music-selector" style={{ marginBottom: '1rem' }}>
+            <h4 className="music-selector-title">
+                <Sparkles size={20} /> Choose Your Style
+            </h4>
+            <div className="genre-chips">
+                <button
+                    className={`genre-chip ${selectedStyle === null ? "active" : ""}`}
+                    onClick={() => chooseStyle(null)}
+                    aria-pressed={selectedStyle === null}
+                    style={{
+                        backgroundColor: selectedStyle === null ? '#ffffff' : 'rgba(255,255,255,0.1)',
+                        borderColor: '#ffffff',
+                        color: selectedStyle === null ? '#222' : undefined
+                    }}
+                >
+                    All Styles
+                </button>
+                {availableStyles.map(style => {
+                    const active = selectedStyle === style.name;
+                    return (
+                        <button
+                            key={style.name}
+                            className={`genre-chip ${active ? "active" : ""}`}
+                            onClick={() => chooseStyle(style.name)}
+                            aria-pressed={active}
+                            style={{
+                                backgroundColor: active ? style.color : 'rgba(255,255,255,0.1)',
+                                borderColor: style.color,
+                                color: active ? '#222' : undefined
+                            }}
+                        >
+                            {style.name}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
 
     if (error) {
         return (
@@ -1257,19 +1348,37 @@ function PromptCard() {
         );
     }
 
-    if (!current || prompts.length === 0) {
+    if (!current) {
+        // Distinguish "nothing seeded at all" from "this style has nothing yet",
+        // since the fix is different for each.
+        const filteredEmpty = prompts.length > 0 && selectedStyle !== null;
         return (
-            <div className="prompt-card">
-                <div className="card-header">
-                    <h2 className="prompt-title">No prompts available</h2>
-                    <p className="prompt-subtitle">Run "npm run seed" to add initial prompts to the database.</p>
+            <>
+                {styleFilter}
+                <div className="prompt-card">
+                    <div className="card-header">
+                        <h2 className="prompt-title">
+                            {filteredEmpty ? `No ${selectedStyle} prompts yet` : 'No prompts available'}
+                        </h2>
+                        <p className="prompt-subtitle">
+                            {filteredEmpty
+                                ? 'Pick another style, or submit a prompt for this one.'
+                                : 'Run "npm run seed" to add initial prompts to the database.'}
+                        </p>
+                    </div>
+                    <div className="button-group">
+                        {filteredEmpty ? (
+                            <button className="btn btn-spin" onClick={() => chooseStyle(null)}>
+                                <Sparkles size={18} /> Show All Styles
+                            </button>
+                        ) : (
+                            <button className="btn btn-spin" onClick={fetchPrompts}>
+                                <RotateCw size={18} /> Refresh
+                            </button>
+                        )}
+                    </div>
                 </div>
-                <div className="button-group">
-                    <button className="btn btn-spin" onClick={fetchPrompts}>
-                        <RotateCw size={18} /> Refresh
-                    </button>
-                </div>
-            </div>
+            </>
         );
     }
 
@@ -1277,9 +1386,27 @@ function PromptCard() {
     // 🎨 RENDER: What shows on screen
     // ─────────────────────────────────────────────────────────
     return (
+        <>
+        {styleFilter}
         <div className="prompt-card">
             {/* ─────── HEADER ─────── */}
             <div className="card-header" style={{ position: 'relative' }}>
+                <span
+                    style={{
+                        display: 'inline-block',
+                        padding: '0.25rem 0.75rem',
+                        marginBottom: '0.5rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        backgroundColor: styleColor(current.style),
+                        color: '#222'
+                    }}
+                >
+                    {current.style || 'Foundation'}
+                </span>
                 <h2 className="prompt-title">{current.label}</h2>
                 <p className="prompt-subtitle">
                     <Music className="inline-icon" size={16} /> {current.description}
@@ -1462,5 +1589,6 @@ function PromptCard() {
                 </div>
             )}
         </div>
+        </>
     );
 }
