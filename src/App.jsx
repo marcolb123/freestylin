@@ -3,11 +3,14 @@ import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "./App.css";
 import { API_URL } from "./config";
 import { AuthContext, useAuth } from "./auth-context";
-import { STYLE_META, styleColor } from "../styles.js";
+import { STYLE_META, styleColor, styleTempo } from "../styles.js";
 import { iconMap, availableIcons } from "./icons";
 import YouTubeEmbed from "./components/YouTubeEmbed";
 import { ProtectedRoute, AdminRoute } from "./components/RouteGuards";
 import JournalPage from "./JournalPage";
+import PracticeProvider from "./practice/PracticeProvider";
+import PracticePanel from "./practice/PracticePanel";
+import { usePractice } from "./practice/practice-context";
 // Icons used directly in this file. The ones a drill can reference by name
 // live in src/icons.js.
 import {
@@ -101,6 +104,7 @@ const MUSIC_GENRES = [
 export default function App() {
     return (
         <AuthProvider>
+            <PracticeProvider>
             <Routes>
                 <Route path="/" element={<MainPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -110,6 +114,7 @@ export default function App() {
                 <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             </Routes>
+            </PracticeProvider>
         </AuthProvider>
     );
 }
@@ -1085,6 +1090,7 @@ function PromptCard() {
     // 🔄 STATE VARIABLES: Track what's happening in the app
     // ─────────────────────────────────────────────────────────
     const { user } = useAuth();
+    const { setBpm } = usePractice();
     const navigate = useNavigate();
     const [index, setIndex] = useState(0);
     const [showTips, setShowTips] = useState(false);
@@ -1124,6 +1130,10 @@ function PromptCard() {
         // to the music it belongs to.
         const matchingGenre = MUSIC_GENRES.find(g => g.name === style);
         if (matchingGenre) setSelectedGenre(matchingGenre);
+
+        // Seed the metronome at a tempo the style is actually danced at, so
+        // "Krump" doesn't start you at a house tempo. Still draggable after.
+        if (style) setBpm(styleTempo(style).default);
     };
 
     useEffect(() => {
@@ -1439,6 +1449,9 @@ function PromptCard() {
                     </ul>
                 </div>
             )}
+
+            {/* ─────── PRACTICE ENGINE ─────── */}
+            <PracticePanel />
 
             {/* ─────── MUSIC GENRE SELECTOR ─────── */}
             <div className="content-box music-selector">
