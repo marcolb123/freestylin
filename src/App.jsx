@@ -1,39 +1,25 @@
 import { useState, useEffect, useMemo } from "react";
-import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "./App.css";
 import { API_URL } from "./config";
 import { AuthContext, useAuth } from "./auth-context";
+import { STYLE_META, styleColor } from "../styles.js";
+import { iconMap, availableIcons } from "./icons";
+import YouTubeEmbed from "./components/YouTubeEmbed";
+import { ProtectedRoute, AdminRoute } from "./components/RouteGuards";
 import JournalPage from "./JournalPage";
-// Import icons from Lucide React
-import { 
-    Sparkles, 
-    Lightbulb, 
-    Youtube, 
-    Trash2, 
+// Icons used directly in this file. The ones a drill can reference by name
+// live in src/icons.js.
+import {
+    Sparkles,
+    Lightbulb,
+    Youtube,
+    Trash2,
     Music,
-    PartyPopper,
     Radio,
     Headphones,
     Dumbbell,
-    Target,
     RotateCw,
-    Timer,
-    Waves as WavesIcon,
-    Brain,
-    Zap,
-    Combine,
-    TrendingUp,
-    ArrowDown,
-    ArrowRight,
-    ArrowUp,
-    RollerCoaster,
-    Bot,
-    Droplet,
-    Footprints,
-    Repeat,
-    Activity,
-    Route as RouteIcon,  // ← Rename this to avoid conflict with React Router's Route
-    Circle,
     Heart,
     BookOpen,
     Link as LinkIcon
@@ -84,21 +70,6 @@ function AuthProvider({ children }) {
 // All prompts are now fetched from the database via API.
 // To add new prompts to the database, run: npm run seed
 
-// 🕺 STREET & CLUB STYLES: display order and colour for the style filter.
-// 'Foundation' holds cross-style fundamentals (bounce, waves, musicality).
-const STYLE_ORDER = [
-    { name: "Hip-Hop", color: "#FFE66D" },
-    { name: "Popping", color: "#4ECDC4" },
-    { name: "Krump", color: "#FF6B6B" },
-    { name: "House", color: "#95E1D3" },
-    { name: "Waacking", color: "#C77DFF" },
-    { name: "Breaking", color: "#FFA36C" },
-    { name: "Foundation", color: "#A0A0A0" },
-];
-
-const styleColor = (style) =>
-    STYLE_ORDER.find(s => s.name === style)?.color || "#A0A0A0";
-
 // 🎵 MUSIC GENRES: SoundCloud mixes by genre
 const MUSIC_GENRES = [
     {
@@ -123,30 +94,6 @@ const MUSIC_GENRES = [
     },
 ];
 
-// Icon mapping object
-const iconMap = {
-    Target,
-    RotateCw,
-    Timer,
-    Music,
-    Dumbbell,
-    WavesIcon,
-    Activity,
-    Brain,
-    Zap,
-    Combine,
-    ArrowUp,
-    ArrowRight,
-    ArrowDown,
-    RollerCoaster,
-    Bot,
-    Droplet,
-    Footprints,
-    Repeat,
-    RouteIcon,  // ← Update here too
-    TrendingUp,
-    Circle
-};
 
 // ═══════════════════════════════════════════════════════════
 // 📱 MAIN APP WITH ROUTING
@@ -165,18 +112,6 @@ export default function App() {
             </Routes>
         </AuthProvider>
     );
-}
-
-function AdminRoute({ children }) {
-    const { user, loading } = useAuth();
-    if (loading) return <div>Loading...</div>;
-    return user?.isAdmin ? children : <Navigate to="/login" />;
-}
-
-function ProtectedRoute({ children }) {
-    const { user, loading } = useAuth();
-    if (loading) return <div>Loading...</div>;
-    return user ? children : <Navigate to="/login" />;
 }
 
 function MainPage() {
@@ -323,12 +258,6 @@ function SubmitPromptPage() {
     const navigate = useNavigate();
 
     // Available icons for drills
-    const availableIcons = [
-        'Target', 'RotateCw', 'Timer', 'Music', 'Dumbbell', 'WavesIcon', 'Activity',
-        'Brain', 'Zap', 'Combine', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'RollerCoaster',
-        'Bot', 'Droplet', 'Footprints', 'Repeat', 'RouteIcon', 'TrendingUp', 'Circle'
-    ];
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
@@ -455,7 +384,7 @@ function SubmitPromptPage() {
                 <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Style</label>
                     <div className="genre-chips">
-                        {STYLE_ORDER.map(style => {
+                        {STYLE_META.map(style => {
                             const selected = formData.style === style.name;
                             return (
                                 <button
@@ -954,71 +883,6 @@ function AdminDashboard() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🎥 YOUTUBE EMBED COMPONENT
-// ═══════════════════════════════════════════════════════════
-function YouTubeEmbed({ videoId, url, title }) {
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
-    // Extract videoId from URL if not provided
-    const extractedVideoId = videoId || extractYouTubeId(url);
-
-    function extractYouTubeId(url) {
-        if (!url) return null;
-        const patterns = [
-            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-            /youtube\.com\/shorts\/([^&\n?#]+)/
-        ];
-        
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match && match[1]) {
-                return match[1];
-            }
-        }
-        return null;
-    }
-
-    if (!extractedVideoId) {
-        return <div style={{ color: '#721c24', padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '8px' }}>
-            Invalid YouTube URL
-        </div>;
-    }
-
-    return (
-        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '12px', marginBottom: '1rem' }}>
-            {loading && (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                    Loading video...
-                </div>
-            )}
-            <iframe
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 'none'
-                }}
-                src={`https://www.youtube.com/embed/${extractedVideoId}`}
-                title={title || 'YouTube video'}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                onLoad={() => setLoading(false)}
-                onError={() => {
-                    setLoading(false);
-                    setError(true);
-                }}
-            />
-            {error && <div style={{ color: '#721c24', padding: '0.5rem', backgroundColor: '#f8d7da', borderRadius: '8px', marginTop: '0.5rem' }}>
-                Failed to load video
-            </div>}
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════
 // ❤️ FAVORITE BUTTON COMPONENT
 // ═══════════════════════════════════════════════════════════
 function FavoriteButton({ prompt, isFavorited: initialFavorited, onToggle }) {
@@ -1236,7 +1100,7 @@ function PromptCard() {
     // can't lead somewhere empty.
     const availableStyles = useMemo(() => {
         const present = new Set(prompts.map(p => p.style || 'Foundation'));
-        return STYLE_ORDER.filter(s => present.has(s.name));
+        return STYLE_META.filter(s => present.has(s.name));
     }, [prompts]);
 
     const visiblePrompts = useMemo(

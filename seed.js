@@ -13,6 +13,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { STYLE_PROMPTS } from './prompts-data.js';
+import { STYLES, DEFAULT_STYLE } from './styles.js';
 
 dotenv.config();
 
@@ -28,8 +29,8 @@ const PromptSchema = new mongoose.Schema({
   description: { type: String, required: true },
   style: {
     type: String,
-    enum: ['Hip-Hop', 'Popping', 'Krump', 'House', 'Waacking', 'Breaking', 'Foundation'],
-    default: 'Foundation'
+    enum: STYLES,
+    default: DEFAULT_STYLE
   },
   tips: [String],
   drills: [{
@@ -283,7 +284,7 @@ async function seedDatabase() {
     // style filter starts hiding anything that isn't categorised.
     const backfilled = await Prompt.updateMany(
       { $or: [{ style: { $exists: false } }, { style: null }] },
-      { $set: { style: 'Foundation' } }
+      { $set: { style: DEFAULT_STYLE } }
     );
     if (backfilled.modifiedCount > 0) {
       console.log(`🏷️  Backfilled ${backfilled.modifiedCount} existing prompt(s) as "Foundation"`);
@@ -292,7 +293,7 @@ async function seedDatabase() {
     // The original prompts are cross-style fundamentals; the new ones carry
     // their own style.
     const ALL_PROMPTS = [
-      ...PROMPTS.map(p => ({ ...p, style: p.style || 'Foundation' })),
+      ...PROMPTS.map(p => ({ ...p, style: p.style || DEFAULT_STYLE })),
       ...STYLE_PROMPTS
     ];
 

@@ -11,7 +11,7 @@
 // video ids: tutorials get deleted or renamed, and a search always lands the
 // dancer somewhere useful instead of on a dead embed.
 
-export const STYLES = ['Hip-Hop', 'Popping', 'Krump', 'House', 'Waacking', 'Breaking', 'Foundation'];
+export { STYLES } from './styles.js';
 
 const search = (title, query) => ({
   title,
