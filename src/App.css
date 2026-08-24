@@ -811,3 +811,112 @@
     width: 100%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   🥁 PRACTICE ENGINE
+   ═══════════════════════════════════════════════════════════ */
+
+.practice-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.count-display {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.4rem;
+}
+
+.count-dot {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.55);
+  /* Short enough to still read as "on the beat" at fast tempos. */
+  transition: background-color 90ms linear, color 90ms linear, transform 90ms ease-out;
+}
+
+/* The 1 stays marked even when unlit, so the top of the count is findable. */
+.count-dot.one { border-color: rgba(255, 230, 109, 0.5); }
+
+.count-dot.active {
+  background: #FFE66D;
+  border-color: #FFE66D;
+  color: #222;
+  transform: scale(1.06);
+}
+
+.count-dot.active.one {
+  background: #FF6B6B;
+  border-color: #FF6B6B;
+  color: #fff;
+}
+
+/* An "and" keeps the number lit but softer, so the display reads 1-8 rather
+   than flickering through subdivisions. */
+.count-dot.active.offbeat {
+  background: rgba(255, 230, 109, 0.35);
+  color: #fff;
+  transform: none;
+}
+
+.practice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tap-hint {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+  font-size: 0.85em;
+  margin-left: 0.15rem;
+}
+
+.bpm-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.bpm-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 5.5rem;
+}
+
+.bpm-value small { font-size: 0.85rem; font-weight: 500; opacity: 0.7; }
+
+.bpm-row input[type="range"] {
+  flex: 1;
+  min-width: 8rem;
+  accent-color: #FFE66D;
+}
+
+.subdivision-chips { grid-template-columns: repeat(3, 1fr); }
+
+.practice-note {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .count-dot { transition: none; transform: none; }
+  .count-dot.active { transform: none; }
+}
+
+@media (max-width: 480px) {
+  .count-display { gap: 0.25rem; }
+  .count-dot { font-size: 0.8rem; border-radius: 8px; }
+}
