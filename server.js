@@ -20,13 +20,33 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 
 // Configure CORS for production
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',                    // Local development (the port vite.config.js sets)
+  'http://localhost:5173',                    // Vite's default, if the config port is changed back
+  'http://localhost:5174',                    // Alternative local port
+  'https://freestylin.netlify.app',           // Production frontend
+];
+
+// Netlify serves deploy previews and branch deploys from generated subdomains
+// of the same site — deploy-preview-7--freestylin.netlify.app,
+// my-branch--freestylin.netlify.app. Those are separate origins, so without
+// this every preview build loads and then fails every API call on CORS,
+// leaving reviewers looking at an error page. Anchored to this site's
+// subdomain, so it can't match an unrelated host.
+const NETLIFY_PREVIEW = /^https:\/\/[a-z0-9][a-z0-9-]*--freestylin\.netlify\.app$/;
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',                    // Local development (the port vite.config.js sets)
-    'http://localhost:5173',                    // Vite's default, if the config port is changed back
-    'http://localhost:5174',                    // Alternative local port
-    'https://freestylin.netlify.app',          // Production frontend
-  ],
+  origin(origin, callback) {
+    // Same-origin requests, curl, and server-to-server calls send no Origin.
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || NETLIFY_PREVIEW.test(origin)) {
+      return callback(null, true);
+    }
+    // Withhold the header rather than throwing: the browser blocks the response
+    // either way, but throwing turns every disallowed origin into a 500 plus a
+    // stack trace in the logs.
+    callback(null, false);
+  },
   credentials: true
 }));
 app.use(express.json());              // Parse JSON requests
@@ -125,6 +145,10 @@ const authMiddleware = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.userId);
+    // The token can outlive the account. Without this, req.user is null and
+    // every downstream handler (adminMiddleware included) throws a 500 where
+    // it should be a clean 401.
+    if (!req.user) return res.status(401).json({ error: 'Invalid token' });
     next();
   } catch {
     res.status(401).json({ error: 'Invalid token' });

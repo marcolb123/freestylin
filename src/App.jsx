@@ -311,12 +311,13 @@ function RegisterPage() {
 // ➕ SUBMIT PROMPT PAGE
 // ═══════════════════════════════════════════════════════════
 function SubmitPromptPage() {
-    const [formData, setFormData] = useState({ 
-        label: '', 
-        description: '', 
-        tips: [''], 
-        drills: [{ icon: 'Target', text: '' }] , 
-        links: [{ title: '', url: '', type: 'youtube' }] 
+    const [formData, setFormData] = useState({
+        label: '',
+        description: '',
+        style: 'Foundation',
+        tips: [''],
+        drills: [{ icon: 'Target', text: '' }] ,
+        links: [{ title: '', url: '', type: 'youtube' }]
     });
     const [message, setMessage] = useState({ type: '', text: '' });
     const navigate = useNavigate();
@@ -440,14 +441,43 @@ function SubmitPromptPage() {
 
                 <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Description *</label>
-                    <textarea 
-                        placeholder="Brief description of the dance concept" 
-                        value={formData.description} 
-                        onChange={e => setFormData({...formData, description: e.target.value})} 
-                        required 
+                    <textarea
+                        placeholder="Brief description of the dance concept"
+                        value={formData.description}
+                        onChange={e => setFormData({...formData, description: e.target.value})}
+                        required
                         rows={3}
                         style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
                     />
+                </div>
+
+                {/* Style — without this every submission silently defaults to Foundation */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Style</label>
+                    <div className="genre-chips">
+                        {STYLE_ORDER.map(style => {
+                            const selected = formData.style === style.name;
+                            return (
+                                <button
+                                    type="button"
+                                    key={style.name}
+                                    className={`genre-chip ${selected ? 'active' : ''}`}
+                                    aria-pressed={selected}
+                                    onClick={() => setFormData({ ...formData, style: style.name })}
+                                    style={{
+                                        backgroundColor: selected ? style.color : 'rgba(255, 255, 255, 0.1)',
+                                        borderColor: style.color,
+                                        color: selected ? '#222' : undefined
+                                    }}
+                                >
+                                    {style.name}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <small style={{ display: 'block', marginTop: '0.5rem', opacity: 0.75 }}>
+                        Pick "Foundation" for fundamentals that belong to every style.
+                    </small>
                 </div>
 
                 {/* Tips Section */}
@@ -1293,7 +1323,7 @@ function PromptCard() {
     // Rendered above the card in every non-loading state, so the dancer can
     // always switch styles — including out of one that has nothing in it.
     const styleFilter = availableStyles.length > 0 && (
-        <div className="content-box music-selector" style={{ marginBottom: '1rem' }}>
+        <div className="content-box music-selector style-filter">
             <h4 className="music-selector-title">
                 <Sparkles size={20} /> Choose Your Style
             </h4>

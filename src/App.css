@@ -80,12 +80,23 @@
 .app-content {
   flex: 1;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
   position: relative;
   z-index: 1;
+}
+
+/* Direct children of the content column share the card's width so the style
+   filter and the prompt card line up. Scoped to `>` deliberately: cards nested
+   inside the favourites grid and the journal list must not be re-centred. */
+.app-content > .prompt-card,
+.app-content > .style-filter {
+  align-self: center;
+  width: 100%;
+  max-width: 1000px;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -291,17 +302,6 @@
   flex: 1;
   line-height: 1.6;
   font-size: 0.95rem;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   🎵 RIGHT SIDE PANEL (Music + Resources)
-   ═══════════════════════════════════════════════════════════ */
-
-.side-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  overflow-y: auto;
 }
 
 /* ═══════════════════════════════════════════════════════════
