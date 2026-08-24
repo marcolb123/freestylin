@@ -7,6 +7,7 @@ import { STYLE_META, styleColor, styleTempo } from "../styles.js";
 import { iconMap, availableIcons } from "./icons";
 import YouTubeEmbed from "./components/YouTubeEmbed";
 import { ProtectedRoute, AdminRoute } from "./components/RouteGuards";
+import MusicPanel from "./components/MusicPanel";
 import JournalPage from "./JournalPage";
 import PracticeProvider from "./practice/PracticeProvider";
 import PracticePanel from "./practice/PracticePanel";
@@ -19,8 +20,6 @@ import {
     Youtube,
     Trash2,
     Music,
-    Radio,
-    Headphones,
     Dumbbell,
     RotateCw,
     Heart,
@@ -73,29 +72,6 @@ function AuthProvider({ children }) {
 // All prompts are now fetched from the database via API.
 // To add new prompts to the database, run: npm run seed
 
-// 🎵 MUSIC GENRES: SoundCloud mixes by genre
-const MUSIC_GENRES = [
-    {
-        name: "House",
-        soundCloudUrl: "https://soundcloud.com/djsupad/housupa-afro-tribal-house-mix",
-        color: "#FF6B6B"
-    },
-    {
-        name: "Krump",
-        soundCloudUrl: "https://soundcloud.com/merciiful1/krump-mix",
-        color: "#4ECDC4"
-    },
-    {
-        name: "Hip-Hop",
-        soundCloudUrl: "https://soundcloud.com/kaisalart/old-school-vibes-vol-2-hip-hop-mix",
-        color: "#FFE66D"
-    },
-    {
-        name: "Popping",
-        soundCloudUrl: "https://soundcloud.com/dj-dbon1-314759770/get-the-tapes-vol-22-hip-hop",
-        color: "#95E1D3"
-    },
-];
 
 
 // ═══════════════════════════════════════════════════════════
@@ -1096,7 +1072,6 @@ function PromptCard() {
     const [showTips, setShowTips] = useState(false);
     const [showResources, setShowResources] = useState(false);
     const [showDrills, setShowDrills] = useState(false);
-    const [selectedGenre, setSelectedGenre] = useState(null);
     const [prompts, setPrompts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -1124,12 +1099,6 @@ function PromptCard() {
         setShowTips(false);
         setShowResources(false);
         setShowDrills(false);
-
-        // Several styles share a name with a music genre (House, Krump,
-        // Hip-Hop, Popping). Cue the matching mix so you're training the style
-        // to the music it belongs to.
-        const matchingGenre = MUSIC_GENRES.find(g => g.name === style);
-        if (matchingGenre) setSelectedGenre(matchingGenre);
 
         // Seed the metronome at a tempo the style is actually danced at, so
         // "Krump" doesn't start you at a house tempo. Still draggable after.
@@ -1453,48 +1422,9 @@ function PromptCard() {
             {/* ─────── PRACTICE ENGINE ─────── */}
             <PracticePanel />
 
-            {/* ─────── MUSIC GENRE SELECTOR ─────── */}
-            <div className="content-box music-selector">
-                <h4 className="music-selector-title">
-                    <Headphones size={20} /> Choose Your Music
-                </h4>
-                <div className="genre-chips">
-                    {MUSIC_GENRES.map((genre) => (
-                        <button
-                            key={genre.name}
-                            className={`genre-chip ${selectedGenre?.name === genre.name ? "active" : ""}`}
-                            onClick={() => setSelectedGenre(genre)}
-                            style={{ 
-                                backgroundColor: selectedGenre?.name === genre.name 
-                                    ? genre.color 
-                                    : 'rgba(255, 255, 255, 0.1)',
-                                borderColor: genre.color
-                            }}
-                        >
-                            <Radio size={16} /> {genre.name}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            {/* ─────── MUSIC ─────── */}
+            <MusicPanel style={selectedStyle} />
 
-            {/* ─────── SOUNDCLOUD PLAYER ─────── */}
-            {selectedGenre && (
-                <div className="content-box music-box">
-                    <h4>
-                        <Radio size={20} /> {selectedGenre.name} Mix
-                    </h4>
-                    <div className="soundcloud-container">
-                        <iframe
-                            width="100%"
-                            height="166"
-                            scrolling="no"
-                            frameBorder="no"
-                            allow="autoplay"
-                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(selectedGenre.soundCloudUrl)}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
         </>
     );
