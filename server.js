@@ -125,6 +125,10 @@ const authMiddleware = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.userId);
+    // The token can outlive the account. Without this, req.user is null and
+    // every downstream handler (adminMiddleware included) throws a 500 where
+    // it should be a clean 401.
+    if (!req.user) return res.status(401).json({ error: 'Invalid token' });
     next();
   } catch {
     res.status(401).json({ error: 'Invalid token' });
