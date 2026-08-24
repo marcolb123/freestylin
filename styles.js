@@ -15,15 +15,36 @@
 // `bpm` seeds the practice metronome when a style is picked. These are
 // sensible starting points rather than settled fact — sub-genres vary and
 // dancers have their own preferences, which is why the tempo stays adjustable.
+//
+// `mix` is the default track for a style. Only the four that were already
+// hardcoded in the app carry one; the rest are deliberately null rather than
+// filled with invented links, and the UI offers "use your own" instead.
+// Anything here can be replaced by a dancer's own link at runtime.
 export const STYLE_META = [
-  { name: 'Hip-Hop',    color: '#FFE66D', bpm: { min:  85, max: 100, default:  92 } },
-  { name: 'Popping',    color: '#4ECDC4', bpm: { min:  90, max: 110, default: 100 } },
-  { name: 'Krump',      color: '#FF6B6B', bpm: { min:  70, max: 100, default:  85 } },
-  { name: 'House',      color: '#95E1D3', bpm: { min: 120, max: 130, default: 125 } },
-  { name: 'Waacking',   color: '#C77DFF', bpm: { min: 110, max: 130, default: 120 } },
-  { name: 'Breaking',   color: '#FFA36C', bpm: { min: 110, max: 130, default: 115 } },
-  // Foundation spans every style, so it gets no characteristic tempo.
-  { name: 'Foundation', color: '#A0A0A0', bpm: { min:  60, max: 180, default: 100 } },
+  {
+    name: 'Hip-Hop', color: '#FFE66D',
+    bpm: { min: 85, max: 100, default: 92 },
+    mix: { title: 'Old School Vibes Vol. 2', url: 'https://soundcloud.com/kaisalart/old-school-vibes-vol-2-hip-hop-mix' }
+  },
+  {
+    name: 'Popping', color: '#4ECDC4',
+    bpm: { min: 90, max: 110, default: 100 },
+    mix: { title: 'Get The Tapes Vol. 22', url: 'https://soundcloud.com/dj-dbon1-314759770/get-the-tapes-vol-22-hip-hop' }
+  },
+  {
+    name: 'Krump', color: '#FF6B6B',
+    bpm: { min: 70, max: 100, default: 85 },
+    mix: { title: 'Krump Mix', url: 'https://soundcloud.com/merciiful1/krump-mix' }
+  },
+  {
+    name: 'House', color: '#95E1D3',
+    bpm: { min: 120, max: 130, default: 125 },
+    mix: { title: 'Housupa Afro Tribal House Mix', url: 'https://soundcloud.com/djsupad/housupa-afro-tribal-house-mix' }
+  },
+  { name: 'Waacking', color: '#C77DFF', bpm: { min: 110, max: 130, default: 120 }, mix: null },
+  { name: 'Breaking', color: '#FFA36C', bpm: { min: 110, max: 130, default: 115 }, mix: null },
+  // Foundation spans every style, so it gets no characteristic tempo or track.
+  { name: 'Foundation', color: '#A0A0A0', bpm: { min: 60, max: 180, default: 100 }, mix: null },
 ];
 
 /** Style names, in display order. Used as the Mongoose enum and API validation. */
@@ -41,3 +62,7 @@ export const styleColor = (style) =>
 export const styleTempo = (style) =>
   STYLE_META.find(s => s.name === style)?.bpm
   || STYLE_META.find(s => s.name === DEFAULT_STYLE).bpm;
+
+/** Default mix for a style, or null when there isn't one. */
+export const styleMix = (style) =>
+  STYLE_META.find(s => s.name === style)?.mix || null;
