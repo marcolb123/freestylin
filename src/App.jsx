@@ -484,7 +484,7 @@ function SubmitPromptPage() {
                 <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tips</label>
                     {formData.tips.map((tip, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <div key={index} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
                             <input 
                                 type="text" 
                                 placeholder={`Tip ${index + 1}`}
@@ -509,7 +509,7 @@ function SubmitPromptPage() {
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Drills</label>
                     {formData.drills.map((drill, index) => (
                         <div key={index} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
                                 <select 
                                     value={drill.icon}
                                     onChange={e => updateDrill(index, 'icon', e.target.value)}
@@ -544,7 +544,7 @@ function SubmitPromptPage() {
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Resource Links</label>
                     {formData.links.map((link, index) => (
                         <div key={index} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
                                 <input 
                                     type="text" 
                                     placeholder="Link title (e.g., Tutorial video)"
@@ -562,7 +562,7 @@ function SubmitPromptPage() {
                             {/* Resource Type Selector */}
                             <div style={{ marginBottom: '0.5rem' }}>
                                 <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem', fontWeight: '600' }}>Resource Type</label>
-                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                         <input 
                                             type="radio" 
@@ -600,7 +600,7 @@ function SubmitPromptPage() {
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '2rem' }}>
                     <button type="submit" className="btn btn-spin">Submit for Review</button>
                     <button type="button" onClick={() => navigate('/')} className="btn btn-toggle">Cancel</button>
                 </div>
@@ -786,7 +786,7 @@ function AdminDashboard() {
                             <p style={{ fontSize: '0.9rem', color: '#666' }}>
                                 Tips: {prompt.tips?.length || 0} | Drills: {prompt.drills?.length || 0} | Links: {prompt.links?.length || 0}
                             </p>
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '1rem' }}>
                                 <button onClick={() => viewDetails(prompt)} className="btn btn-toggle">View Details</button>
                                 {prompt.status === 'pending' && (
                                     <>
