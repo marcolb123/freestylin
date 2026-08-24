@@ -6,7 +6,7 @@
   max-width: 100%;
   margin: 0;
   padding: 0;
-  height: 100vh;
+  height: 100dvh;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -14,14 +14,14 @@
    ═══════════════════════════════════════════════════════════ */
 
 .app-container {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   padding: 2rem;
-  background-image: url('/graffiti-background.png');
+  background-image: url('/graffiti-background.webp');
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
+  background-attachment: scroll;
   background-repeat: no-repeat;
   position: relative;
 }
@@ -503,15 +503,15 @@
    ═══════════════════════════════════════════════════════════ */
 
 .auth-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 2rem;
-  background-image: url('/graffiti-background.png');
+  background-image: url('/graffiti-background.webp');
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
+  background-attachment: scroll;
   position: relative;
 }
 
@@ -613,13 +613,13 @@
    ═══════════════════════════════════════════════════════════ */
 
 .admin-dashboard {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem;
   color: white;
-  background-image: url('/graffiti-background.png');
+  background-image: url('/graffiti-background.webp');
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
+  background-attachment: scroll;
   position: relative;
 }
 

@@ -7,6 +7,7 @@ import dotenv from 'dotenv';          // Load .env file
 import mongoose from 'mongoose';      // MongoDB object modeling
 import bcrypt from 'bcryptjs';        // Password hashing
 import jwt from 'jsonwebtoken';        // JSON Web Token
+import { STYLES, DEFAULT_STYLE } from './styles.js';
 
 dotenv.config();                      // Read .env file
 
@@ -73,14 +74,15 @@ const UserSchema = new mongoose.Schema({
 // Add index on favoritePrompts for faster queries
 UserSchema.index({ favoritePrompts: 1 });
 
-const STYLES = ['Hip-Hop', 'Popping', 'Krump', 'House', 'Waacking', 'Breaking', 'Foundation'];
+// Style list lives in styles.js so the enum, the API validation, the seed
+// scripts and the frontend filter can't drift apart.
 
 const PromptSchema = new mongoose.Schema({
   label: { type: String, required: true },
   description: { type: String, required: true },
   // 'Foundation' covers cross-style fundamentals (bounce, waves, musicality)
   // that aren't owned by any single style.
-  style: { type: String, enum: STYLES, default: 'Foundation' },
+  style: { type: String, enum: STYLES, default: DEFAULT_STYLE },
   tips: [String],
   drills: [{
     icon: String,
