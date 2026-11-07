@@ -12,8 +12,6 @@ import JournalPage from "./JournalPage";
 import PracticeProvider from "./practice/PracticeProvider";
 import PracticePanel from "./practice/PracticePanel";
 import { usePractice } from "./practice/practice-context";
-import { StudioLayout, Home, Dictionary, Lab, MusicLibrary, StyleHistory, GuestJournal } from './studio/Studio';
-import './studio/Studio.css';
 // Icons used directly in this file. The ones a drill can reference by name
 // live in src/icons.js.
 import {
@@ -37,15 +35,10 @@ function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        try {
-            const token = localStorage.getItem('token');
-            const userData = localStorage.getItem('user');
-            if (token && userData) {
-                const parsed = JSON.parse(userData);
-                if (parsed && typeof parsed === 'object' && typeof parsed.username === 'string') setUser(parsed);
-            }
-        } catch {
-            // Unavailable or malformed storage should not block public pages.
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        if (token && userData) {
+            setUser(JSON.parse(userData));
         }
         setLoading(false);
     }, []);
@@ -89,29 +82,17 @@ export default function App() {
         <AuthProvider>
             <PracticeProvider>
             <Routes>
-                <Route element={<StudioLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/dictionary" element={<Dictionary />} />
-                <Route path="/lab" element={<Lab />} />
-                <Route path="/music" element={<MusicLibrary />} />
-                <Route path="/history" element={<StyleHistory />} />
-                <Route path="/journal" element={<JournalGateway />} />
-                </Route>
-                <Route path="/classic" element={<MainPage />} />
+                <Route path="/" element={<MainPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/submit" element={<SubmitPromptPage />} />
                 <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
+                <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             </Routes>
             </PracticeProvider>
         </AuthProvider>
     );
-}
-
-function JournalGateway() {
-    const { user } = useAuth();
-    return user ? <JournalPage /> : <GuestJournal />;
 }
 
 function MainPage() {
