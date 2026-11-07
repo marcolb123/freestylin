@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
     BookOpen, Flame, Clock, CalendarDays, Trash2, Save, Pencil, X, Music, Target
 } from "lucide-react";
 import { apiFetch, toLocalISODate, formatISODate } from "./api";
-import { mergeJournalDraft } from "./studio/model";
 
 const EMPTY_FORM = { date: toLocalISODate(), prompts: [], notes: "", durationMinutes: "", energy: null };
 
@@ -13,7 +12,6 @@ const ENERGY_LABELS = ["Drained", "Low", "Steady", "Good", "On fire"];
 export default function JournalPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const labDraftRef = useRef(location.state?.labDraft);
 
     const [entries, setEntries] = useState([]);
     const [stats, setStats] = useState(null);
@@ -43,28 +41,12 @@ export default function JournalPage() {
             setEntries(entryData);
             setStats(statData);
             setPrompts(promptData);
-            // Dictionary IDs are not MongoDB prompt IDs. Preserve the earlier
-            // daily log, and carry dictionary movements in the reflection.
-            if (labDraftRef.current) {
-                const existing = entryData.find(entry => entry.date === toLocalISODate());
-                const merged = mergeJournalDraft(existing, labDraftRef.current);
-                setForm({
-                    ...EMPTY_FORM,
-                    date: toLocalISODate(),
-                    notes: merged.notes,
-                    durationMinutes: merged.durationMinutes,
-                    energy: merged.energy,
-                    prompts: merged.prompts.map(prompt => typeof prompt === "string" ? prompt : prompt._id)
-                });
-                labDraftRef.current = null;
-                navigate(location.pathname, { replace: true, state: null });
-            }
         } catch (err) {
             setError(err.message || "Could not load your journal.");
         } finally {
             setLoading(false);
         }
-    }, [location.pathname, navigate]);
+    }, []);
 
     useEffect(() => { load(); }, [load]);
 
