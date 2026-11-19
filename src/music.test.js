@@ -33,6 +33,10 @@ describe('parseMusicUrl — rejection', () => {
         expect(parseMusicUrl('https://soundcloud.com/djsupad')).toBeNull();
     });
 
+    it('returns null for a malformed SoundCloud path escape', () => {
+        expect(parseMusicUrl('https://soundcloud.com/artist/100%')).toBeNull();
+    });
+
     it('rejects a YouTube URL with no video or list', () => {
         expect(parseMusicUrl('https://www.youtube.com/feed/subscriptions')).toBeNull();
     });

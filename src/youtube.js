@@ -1,23 +1,23 @@
-const YOUTUBE_ID_PATTERNS = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/shorts\/([^&\n?#]+)/
-];
+const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com']);
+const SHORT_HOSTS = new Set(['youtu.be', 'www.youtu.be']);
 
-/**
- * Pull the video id out of any of the YouTube URL shapes.
- *
- * Mirrors extractYouTubeVideoId in server.js, which stores `videoId` on links
- * at submission time — this is the fallback for links saved before that field
- * existed, or entered by hand.
- *
- * Kept in a component-free module so YouTubeEmbed.jsx exports only a
- * component and React Fast Refresh keeps working.
- */
-export function extractYouTubeId(url) {
-    if (!url) return null;
-    for (const pattern of YOUTUBE_ID_PATTERNS) {
-        const match = url.match(pattern);
-        if (match && match[1]) return match[1];
+export function extractYouTubeId(value) {
+    if (typeof value !== 'string') return null;
+    let url;
+    try {
+        url = new URL(value);
+    } catch {
+        return null;
     }
-    return null;
+
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    let id;
+    if (SHORT_HOSTS.has(url.hostname)) {
+        id = url.pathname.split('/')[1];
+    } else if (YOUTUBE_HOSTS.has(url.hostname)) {
+        id = url.pathname === '/watch'
+            ? url.searchParams.get('v')
+            : url.pathname.match(/^\/(?:embed|shorts)\/([^/]+)\/?$/)?.[1];
+    }
+    return typeof id === 'string' && /^[\w-]{11}$/.test(id) ? id : null;
 }

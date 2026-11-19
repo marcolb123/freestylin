@@ -47,11 +47,17 @@ export function parseMusicUrl(raw) {
         const segments = url.pathname.split('/').filter(Boolean);
         if (segments.length < 2) return null;
         const isSet = segments[1] === 'sets';
+        let label;
+        try {
+            label = decodeURIComponent(segments.at(-1)).replace(/-/g, ' ');
+        } catch {
+            return null;
+        }
         return {
             provider: 'SoundCloud',
             embedUrl: soundcloudEmbed(url.toString()),
             height: isSet ? 300 : 166,
-            label: decodeURIComponent(segments[segments.length - 1]).replace(/-/g, ' ')
+            label
         };
     }
 

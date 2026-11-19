@@ -5,7 +5,7 @@ export default function YouTubeEmbed({ videoId, url, title }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const extractedVideoId = videoId || extractYouTubeId(url);
+    const extractedVideoId = extractYouTubeId(url) || (/^[\w-]{11}$/.test(videoId ?? '') ? videoId : null);
 
     if (!extractedVideoId) {
         return (

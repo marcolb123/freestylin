@@ -6,8 +6,8 @@ import { API_URL } from './config';
  * message — so callers can just try/catch instead of re-checking res.ok and
  * re-reading the token everywhere.
  */
-export async function apiFetch(path, { body, method, ...options } = {}) {
-    const token = localStorage.getItem('token');
+export async function apiFetch(path, { body, method, authenticated = true, ...options } = {}) {
+    const token = authenticated ? localStorage.getItem('token') : null;
     const headers = { ...options.headers };
 
     if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -22,14 +22,38 @@ export async function apiFetch(path, { body, method, ...options } = {}) {
 
     // 204s and empty bodies are valid responses but not valid JSON.
     const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    let data = null;
+    try {
+        data = text ? JSON.parse(text) : null;
+    } catch {
+        if (res.ok) throw new Error('The server returned an invalid response');
+    }
 
     if (!res.ok) {
+        if (res.status === 401 && token && localStorage.getItem('token') === token) {
+            window.dispatchEvent(new Event('freestylin:session-expired'));
+        }
         const err = new Error(data?.error || `Request failed (${res.status})`);
         err.status = res.status;
         throw err;
     }
     return data;
+}
+
+// Fetch bounded pages while keeping the complete pool available for prompt spins.
+export async function fetchPages(path, { cursor = '_id', ...options } = {}) {
+    const items = [];
+    const separator = path.includes('?') ? '&' : '?';
+    let after;
+    while (true) {
+        const query = after ? `&after=${encodeURIComponent(after)}` : '';
+        const page = await apiFetch(`${path}${separator}limit=100${query}`, options);
+        items.push(...page);
+        if (page.length < 100) return items;
+        const next = page.at(-1)?.[cursor];
+        if (!next || next === after) throw new Error('The server returned an invalid page cursor');
+        after = next;
+    }
 }
 
 /**

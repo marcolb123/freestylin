@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
     BookOpen, Flame, Clock, CalendarDays, Trash2, Save, Pencil, X, Music, Target
 } from "lucide-react";
-import { apiFetch, toLocalISODate, formatISODate } from "./api";
+import { apiFetch, fetchPages, toLocalISODate, formatISODate } from "./api";
 
 const EMPTY_FORM = { date: toLocalISODate(), prompts: [], notes: "", durationMinutes: "", energy: null };
 
@@ -26,6 +26,7 @@ export default function JournalPage() {
     // main page, so the dancer lands here with what they just trained selected.
     const [form, setForm] = useState(() => ({
         ...EMPTY_FORM,
+        date: toLocalISODate(),
         prompts: location.state?.promptId ? [location.state.promptId] : []
     }));
 
@@ -33,14 +34,13 @@ export default function JournalPage() {
         try {
             setLoading(true);
             setError(null);
-            const [entryData, statData, promptData] = await Promise.all([
-                apiFetch("/api/journal"),
-                apiFetch(`/api/journal/stats?today=${toLocalISODate()}`),
-                apiFetch("/api/prompts")
+            const results = await Promise.allSettled([
+                fetchPages("/api/journal", { cursor: "date" }).then(setEntries),
+                apiFetch(`/api/journal/stats?today=${toLocalISODate()}`).then(setStats),
+                fetchPages("/api/prompts?fields=summary").then(setPrompts)
             ]);
-            setEntries(entryData);
-            setStats(statData);
-            setPrompts(promptData);
+            const failure = results.find(result => result.status === "rejected");
+            if (failure) setError(failure.reason.message || "Could not load all journal data.");
         } catch (err) {
             setError(err.message || "Could not load your journal.");
         } finally {
