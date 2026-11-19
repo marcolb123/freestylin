@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "./App.css";
-import { API_URL } from "./config";
+import { apiFetch, fetchPages } from "./api";
+import { isWebUrl } from "./web-url.js";
 import { AuthContext, useAuth } from "./auth-context";
 import { STYLE_META, styleColor, styleTempo } from "../styles.js";
 import { iconMap, availableIcons } from "./icons";
@@ -34,30 +35,43 @@ function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
-        if (token && userData) {
-            setUser(JSON.parse(userData));
-        }
-        setLoading(false);
+    const login = useCallback((token, userData) => {
+        localStorage.setItem('token', token);
+        setUser(userData);
     }, []);
 
-    const login = (token, userData) => {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
-        setUser(userData);
-    };
-
-    const logout = () => {
+    const logout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
-    };
+    }, []);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        window.addEventListener('freestylin:session-expired', logout);
+        async function restoreSession() {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    const restored = await apiFetch('/api/auth/me', { signal: controller.signal });
+                    if (!controller.signal.aborted && localStorage.getItem('token') === token) setUser(restored);
+                }
+            } catch {
+                // A rejected token is handled by the shared 401 listener.
+            } finally {
+                if (!controller.signal.aborted) setLoading(false);
+            }
+        }
+        restoreSession();
+        return () => {
+            controller.abort();
+            window.removeEventListener('freestylin:session-expired', logout);
+        };
+    }, [logout]);
 
     // Memoized so consumers don't re-render on every AuthProvider render just
     // because the context value was a freshly-allocated object.
-    const value = useMemo(() => ({ user, login, logout, loading }), [user, loading]);
+    const value = useMemo(() => ({ user, login, logout, loading }), [user, loading, login, logout]);
 
     return (
         <AuthContext.Provider value={value}>
@@ -149,20 +163,11 @@ function LoginPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                login(data.token, data.user);
-                navigate('/');
-            } else {
-                alert(data.error);
-            }
-        } catch {
-            alert('Login failed');
+            const data = await apiFetch('/api/auth/login', { body: { email, password }, authenticated: false });
+            login(data.token, data.user);
+            navigate('/');
+        } catch (error) {
+            alert(error.message || 'Login failed');
         }
     };
 
@@ -192,20 +197,11 @@ function RegisterPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, password })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                login(data.token, data.user);
-                navigate('/');
-            } else {
-                alert(data.error);
-            }
-        } catch {
-            alert('Registration failed');
+            const data = await apiFetch('/api/auth/register', { body: { username, email, password }, authenticated: false });
+            login(data.token, data.user);
+            navigate('/');
+        } catch (error) {
+            alert(error.message || 'Registration failed');
         }
     };
 
@@ -215,7 +211,7 @@ function RegisterPage() {
                 <h2>Register</h2>
                 <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
                 <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+                <input type="password" minLength={8} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
                 <button type="submit" className="btn btn-spin">Register</button>
                 <Link to="/login">Already have an account? Login</Link>
             </form>
@@ -265,22 +261,12 @@ function SubmitPromptPage() {
             links: cleanedLinks
         };
 
-        const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`${API_URL}/api/prompts`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(submissionData)
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setMessage({ type: 'success', text: 'Prompt submitted for review! Redirecting...' });
-                setTimeout(() => navigate('/'), 2000);
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Submission failed' });
-            }
-        } catch {
-            setMessage({ type: 'error', text: 'Network error. Please try again.' });
+            await apiFetch('/api/prompts', { body: submissionData });
+            setMessage({ type: 'success', text: 'Prompt submitted for review! Redirecting...' });
+            setTimeout(() => navigate('/'), 2000);
+        } catch (error) {
+            setMessage({ type: 'error', text: error.message || 'Submission failed' });
         }
     };
 
@@ -524,7 +510,7 @@ function SubmitPromptPage() {
 // ═══════════════════════════════════════════════════════════
 function AdminDashboard() {
     const [stats, setStats] = useState(null);
-    const [prompts, setPrompts] = useState([]);
+    const [error, setError] = useState(null);
     const [allPrompts, setAllPrompts] = useState([]);
     const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'rejected', 'all'
     const [selectedPrompt, setSelectedPrompt] = useState(null);
@@ -532,91 +518,48 @@ function AdminDashboard() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchStats();
-        fetchPrompts();
-        fetchAllPrompts();
+    const load = useCallback(async (signal) => {
+        try {
+            const [statsData, promptData] = await Promise.all([
+                apiFetch('/api/admin/stats', { signal }),
+                fetchPages('/api/admin/prompts/all', { signal })
+            ]);
+            if (!signal?.aborted) {
+                setStats(statsData);
+                setAllPrompts(promptData);
+                setError(null);
+            }
+        } catch (error) {
+            if (!signal?.aborted) setError(error.message);
+        }
     }, []);
 
-    const fetchStats = async () => {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_URL}/api/admin/stats`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        setStats(data);
-    };
+    useEffect(() => {
+        const controller = new AbortController();
+        load(controller.signal);
+        return () => controller.abort();
+    }, [load]);
 
-    const fetchPrompts = async () => {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_URL}/api/prompts?status=pending`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        setPrompts(data);
-    };
-
-    const fetchAllPrompts = async () => {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_URL}/api/admin/prompts/all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            setAllPrompts(data);
-        }
-    };
-
-    const approvePrompt = async (id) => {
-        const token = localStorage.getItem('token');
+    const moderatePrompt = async (id, status) => {
         try {
-            await fetch(`${API_URL}/api/prompts/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ status: 'approved' })
-            });
-            alert('Prompt approved successfully!');
-            fetchPrompts();
-            fetchAllPrompts();
-            fetchStats();
+            await apiFetch(`/api/prompts/${id}`, { method: 'PUT', body: { status } });
             setShowDetails(false);
-        } catch {
-            alert('Failed to approve prompt');
+            await load();
+        } catch (error) {
+            setError(error.message);
         }
     };
 
-    const rejectPrompt = async (id) => {
-        const token = localStorage.getItem('token');
-        try {
-            await fetch(`${API_URL}/api/prompts/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ status: 'rejected' })
-            });
-            alert('Prompt rejected');
-            fetchPrompts();
-            fetchAllPrompts();
-            fetchStats();
-            setShowDetails(false);
-        } catch {
-            alert('Failed to reject prompt');
-        }
-    };
+    const approvePrompt = (id) => moderatePrompt(id, 'approved');
+    const rejectPrompt = (id) => moderatePrompt(id, 'rejected');
 
     const deletePrompt = async (id) => {
-        const token = localStorage.getItem('token');
         try {
-            await fetch(`${API_URL}/api/prompts/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            alert('Prompt deleted');
-            fetchPrompts();
-            fetchAllPrompts();
-            fetchStats();
+            await apiFetch(`/api/prompts/${id}`, { method: 'DELETE' });
             setShowDeleteConfirm(null);
-        } catch {
-            alert('Failed to delete prompt');
+            await load();
+        } catch (error) {
+            setError(error.message);
         }
     };
 
@@ -625,6 +568,7 @@ function AdminDashboard() {
         setShowDetails(true);
     };
 
+    const prompts = allPrompts.filter(prompt => prompt.status === 'pending');
     const getFilteredPrompts = () => {
         if (filter === 'pending') return prompts;
         if (filter === 'all') return allPrompts;
@@ -634,6 +578,7 @@ function AdminDashboard() {
     return (
         <div className="admin-dashboard">
             <h1>Admin Dashboard</h1>
+            {error && <p role="alert">{error}</p>}
             <button onClick={() => navigate('/')} className="btn btn-toggle">Back to Home</button>
             
             {stats && (
@@ -828,7 +773,7 @@ function AdminDashboard() {
                                     {selectedPrompt.links.map((link, i) => (
                                         <li key={i} style={{ marginBottom: '0.5rem' }}>
                                             <a 
-                                                href={link.url} 
+                                                href={isWebUrl(link.url) ? link.url : undefined}
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
                                                 style={{ 
@@ -893,16 +838,9 @@ function FavoriteButton({ prompt, isFavorited: initialFavorited, onToggle }) {
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            const method = newFavorited ? 'POST' : 'DELETE';
-            const url = `${API_URL}/api/users/${user.id}/favorites/${prompt._id}`;
-
-            const res = await fetch(url, {
-                method,
-                headers: { 'Authorization': `Bearer ${token}` }
+            await apiFetch(`/api/users/${user.id}/favorites/${prompt._id}`, {
+                method: newFavorited ? 'POST' : 'DELETE'
             });
-
-            if (!res.ok) throw new Error('Failed to update favorite');
 
             if (onToggle) onToggle(prompt._id, newFavorited);
         } catch (error) {
@@ -952,35 +890,21 @@ function FavoritesPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [favorites, setFavorites] = useState([]);
+    const [refresh, setRefresh] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetchFavorites();
-    }, []);
-
-    const fetchFavorites = async () => {
         if (!user) return;
-        
-        try {
-            setLoading(true);
-            setError(null);
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/api/users/${user.id}/favorites`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!res.ok) throw new Error('Failed to fetch favorites');
-
-            const data = await res.json();
-            setFavorites(data);
-        } catch (error) {
-            console.error('Error fetching favorites:', error);
-            setError('Failed to load favorites. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+        const controller = new AbortController();
+        setLoading(true);
+        setError(null);
+        apiFetch(`/api/users/${user.id}/favorites`, { signal: controller.signal })
+            .then(data => { if (!controller.signal.aborted) setFavorites(data); })
+            .catch(error => { if (!controller.signal.aborted) setError(error.message); })
+            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        return () => controller.abort();
+    }, [user, refresh]);
 
     const handleRemoveFavorite = (promptId) => {
         setFavorites(prev => prev.filter(p => p._id !== promptId));
@@ -1005,7 +929,7 @@ function FavoritesPage() {
                         <p style={{ color: '#721c24', backgroundColor: '#f8d7da', padding: '1rem', borderRadius: '8px' }}>
                             {error}
                         </p>
-                        <button onClick={fetchFavorites} className="btn btn-spin" style={{ marginTop: '1rem' }}>
+                        <button onClick={() => setRefresh(value => value + 1)} className="btn btn-spin" style={{ marginTop: '1rem' }}>
                             Retry
                         </button>
                     </div>
@@ -1073,6 +997,7 @@ function PromptCard() {
     const [showResources, setShowResources] = useState(false);
     const [showDrills, setShowDrills] = useState(false);
     const [prompts, setPrompts] = useState([]);
+    const [refresh, setRefresh] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedStyle, setSelectedStyle] = useState(null);
@@ -1106,34 +1031,21 @@ function PromptCard() {
     };
 
     useEffect(() => {
-        fetchPrompts();
-    }, [user]);
-
-    const fetchPrompts = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const url = user
-                ? `${API_URL}/api/prompts?userId=${user.id}`
-                : `${API_URL}/api/prompts`;
-            const token = localStorage.getItem('token');
-            const res = await fetch(url, user ? { headers: { 'Authorization': `Bearer ${token}` } } : undefined);
-            if (!res.ok) {
-                throw new Error('Failed to fetch prompts from server');
-            }
-            const data = await res.json();
-            if (data.length === 0) {
-                setError('No prompts available. Please run "npm run seed" to add initial prompts.');
-            } else {
+        const controller = new AbortController();
+        const query = user ? `?userId=${encodeURIComponent(user.id)}` : '';
+        setLoading(true);
+        setError(null);
+        fetchPages(`/api/prompts${query}`, { signal: controller.signal })
+            .then(data => {
+                if (controller.signal.aborted) return;
                 setPrompts(data);
-            }
-        } catch (error) {
-            console.error('Failed to fetch prompts:', error);
-            setError('Unable to load prompts. Please ensure the server is running.');
-        } finally {
-            setLoading(false);
-        }
-    };
+                setIndex(0);
+                if (!data.length) setError('No prompts available yet.');
+            })
+            .catch(error => { if (!controller.signal.aborted) setError(error.message); })
+            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        return () => controller.abort();
+    }, [user, refresh]);
 
     // ─────────────────────────────────────────────────────────
     // 🎲 SPIN PROMPT: Get a random prompt
@@ -1213,7 +1125,7 @@ function PromptCard() {
                     <p className="prompt-subtitle">{error}</p>
                 </div>
                 <div className="button-group">
-                    <button className="btn btn-spin" onClick={fetchPrompts}>
+                    <button className="btn btn-spin" onClick={() => setRefresh(value => value + 1)}>
                         <RotateCw size={18} /> Retry
                     </button>
                 </div>
@@ -1245,7 +1157,7 @@ function PromptCard() {
                                 <Sparkles size={18} /> Show All Styles
                             </button>
                         ) : (
-                            <button className="btn btn-spin" onClick={fetchPrompts}>
+                            <button className="btn btn-spin" onClick={() => setRefresh(value => value + 1)}>
                                 <RotateCw size={18} /> Refresh
                             </button>
                         )}
@@ -1289,7 +1201,9 @@ function PromptCard() {
                         <FavoriteButton 
                             prompt={current} 
                             isFavorited={current.isFavorited || false}
-                            onToggle={fetchPrompts}
+                            onToggle={(id, isFavorited) => setPrompts(items => items.map(
+                                prompt => prompt._id === id ? { ...prompt, isFavorited } : prompt
+                            ))}
                         />
                     </div>
                 )}
@@ -1363,18 +1277,18 @@ function PromptCard() {
                     )}
                     
                     {/* Website Links Section */}
-                    {current.links.filter(l => l.type === 'website').length > 0 && (
+                    {current.links.filter(l => l.type === 'website' && isWebUrl(l.url)).length > 0 && (
                         <>
                             <h4 style={{ marginTop: current.links.filter(l => l.type === 'youtube' || !l.type).length > 0 ? '1.5rem' : '0' }}>
                                 <LinkIcon size={20} /> Website Resources
                             </h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 {current.links
-                                    .filter(l => l.type === 'website')
+                                    .filter(l => l.type === 'website' && isWebUrl(l.url))
                                     .map((link, i) => (
                                         <a
                                             key={`link-${i}`}
-                                            href={link.url}
+                                            href={isWebUrl(link.url) ? link.url : undefined}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="video-link"

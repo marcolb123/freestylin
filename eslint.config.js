@@ -27,7 +27,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['server.js', 'seed.js'],
+    files: ['server.js', 'server.test.js', 'prompt-model.js', 'seed.js'],
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',

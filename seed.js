@@ -13,44 +13,14 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { STYLE_PROMPTS } from './prompts-data.js';
-import { STYLES, DEFAULT_STYLE } from './styles.js';
+import { DEFAULT_STYLE } from './styles.js';
+import { Prompt } from './prompt-model.js';
 
 dotenv.config();
 
 // Pass --yes to skip the "prompts already exist" confirmation, so the script
 // can run in CI or any other non-interactive shell without hanging on stdin.
 const AUTO_YES = process.argv.includes('--yes') || process.argv.includes('-y');
-
-// ═══════════════════════════════════════════════════════════
-// 📊 MONGODB SCHEMA (same as in server.js)
-// ═══════════════════════════════════════════════════════════
-const PromptSchema = new mongoose.Schema({
-  label: { type: String, required: true },
-  description: { type: String, required: true },
-  style: {
-    type: String,
-    enum: STYLES,
-    default: DEFAULT_STYLE
-  },
-  tips: [String],
-  drills: [{
-    icon: String,
-    text: String
-  }],
-  links: [{
-    title: String,
-    url: String,
-    type: { type: String, enum: ['youtube', 'website'], default: 'website' },
-    videoId: String
-  }],
-  submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  likes: { type: Number, default: 0 },
-  views: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const Prompt = mongoose.model('Prompt', PromptSchema);
 
 // ═══════════════════════════════════════════════════════════
 // 📚 PROMPTS DATA (extracted from App.jsx)

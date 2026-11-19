@@ -68,6 +68,7 @@ export function usePracticeEngine() {
     const subRef = useRef(subdivision);
     const mutedRef = useRef(muted);
     const tapsRef = useRef([]);
+    const runRef = useRef(null);
 
     const setBpm = useCallback((next) => {
         const value = clampBpm(next);
@@ -101,7 +102,7 @@ export function usePracticeEngine() {
     // ── the scheduling loop ────────────────────────────────────────────
     const onTick = useCallback(() => {
         const ctx = ctxRef.current;
-        if (!ctx) return;
+        if (!ctx || !runRef.current?.running) return;
 
         const now = ctx.currentTime;
 
@@ -154,6 +155,8 @@ export function usePracticeEngine() {
     }, []);
 
     const stop = useCallback(() => {
+        runRef.current = null;
+        if (masterRef.current) masterRef.current.gain.value = 0;
         workerRef.current?.postMessage({ command: 'stop' });
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -178,7 +181,18 @@ export function usePracticeEngine() {
             masterRef.current = master;
         }
 
-        await ctxRef.current.resume();
+        if (runRef.current) return false;
+        const run = { running: false };
+        runRef.current = run;
+        try {
+            await ctxRef.current.resume();
+        } catch {
+            if (runRef.current === run) runRef.current = null;
+            return false;
+        }
+        if (runRef.current !== run) return false;
+        run.running = true;
+        masterRef.current.gain.value = 0.9;
 
         // A little runway so the first click isn't scheduled in the past.
         cursorRef.current = { nextTime: ctxRef.current.currentTime + 0.12, tick: 0 };
@@ -200,6 +214,7 @@ export function usePracticeEngine() {
         workerRef.current = worker;
 
         return () => {
+            runRef.current = null;
             worker.postMessage({ command: 'stop' });
             worker.terminate();
             workerRef.current = null;

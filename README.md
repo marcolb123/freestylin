@@ -3,14 +3,14 @@
 A React-based web application that helps dancers practice freestyle by providing random prompts, practice tips, video resources, curated practice drills, and music mixes to dance to.
 
 ![React](https://img.shields.io/badge/React-19.1.1-blue)
-![Vite](https://img.shields.io/badge/Vite-7.1.2-purple)
+![Vite](https://img.shields.io/badge/Vite-7.3.8-purple)
 ![Lucide](https://img.shields.io/badge/Lucide_React-0.553.0-orange)
 
 ##  Tech Stack
 
 ### Frontend
 - **React 19.1.1** - UI framework
-- **Vite 7.1.2** - Build tool and dev server
+- **Vite 7.3.8** - Build tool and dev server
 - **React Router DOM** - Client-side routing
 - **Lucide React** - Icon library
 - **CSS3** - Styling with gradients and animations
